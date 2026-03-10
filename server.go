@@ -7,6 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -111,6 +114,9 @@ func startWebServer(cfg Config, port string) {
 	mux.HandleFunc("POST /api/vms/{id}/stop", ws.handleStopVM)
 	mux.HandleFunc("POST /api/vms/{id}/restart", ws.handleRestartVM)
 	mux.HandleFunc("DELETE /api/vms/{id}", ws.handleDeleteVM)
+
+	// API — Keys (download provisioned SSH keys)
+	mux.HandleFunc("GET /api/keys/{filename}", ws.handleDownloadKey)
 
 	// API — Provisioning
 	mux.HandleFunc("POST /api/provision", ws.handleProvision)
@@ -218,6 +224,35 @@ func (ws *WebServer) handleDeleteVM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonOK(w, map[string]string{"status": "deleted"})
+}
+
+// ── Key Download ─────────────────────────────────────────────────────────
+
+// validKeyName allows only the filenames produced by generateSSHCert:
+//
+//	vmname_key  or  vmname_key-cert.pub
+//
+// This prevents path traversal and limits exposure to only Atlas-generated files.
+var validKeyName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*_key(-cert\.pub)?$`)
+
+func (ws *WebServer) handleDownloadKey(w http.ResponseWriter, r *http.Request) {
+	filename := filepath.Base(r.PathValue("filename"))
+	if !validKeyName.MatchString(filename) {
+		jsonError(w, "invalid filename", 400)
+		return
+	}
+
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		jsonError(w, "key not found", 404)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
 }
 
 func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {
