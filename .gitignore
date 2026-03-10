@@ -1,0 +1,7 @@
+# SSH keys/credentials
+*.pub
+*_key
+ca_ed25519
+
+# Executable binaries
+atlas-plane

@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas Plane</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e57000' stroke-width='2'><polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Atlas Plane — OLED Dark Theme — Design Tokens
+   ═══════════════════════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  /* ── Background Scale (OLED) ── */
+  --bg-0: #000000;
+  --bg-1: #09090b;
+  --bg-2: #0f0f12;
+  --bg-3: #161619;
+  --bg-4: #1e1e22;
+  --bg-5: #27272b;
+
+  /* ── Borders ── */
+  --border: #1a1a1f;
+  --border-light: #27272e;
+  --border-active: #3a3a44;
+
+  /* ── Text Scale ── */
+  --text: #ededf0;
+  --text-2: #8b8b98;
+  --text-3: #55555f;
+  --text-4: #3a3a42;
+
+  /* ── Accent: Proxmox Orange ── */
+  --accent: #e57000;
+  --accent-hover: #ff8a1a;
+  --accent-dim: #b35800;
+  --accent-muted: #994d00;
+  --accent-bg: rgba(229,112,0,0.07);
+  --accent-bg-hover: rgba(229,112,0,0.13);
+  --accent-border: rgba(229,112,0,0.25);
+  --accent-glow: 0 0 24px rgba(229,112,0,0.08);
+  --accent-glow-strong: 0 0 32px rgba(229,112,0,0.15), 0 0 0 1px rgba(229,112,0,0.12);
+
+  /* ── Status Colors ── */
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.08);
+  --green-border: rgba(34,197,94,0.2);
+  --green-glow: rgba(34,197,94,0.25);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.08);
+  --red-border: rgba(239,68,68,0.2);
+  --amber: #f59e0b;
+  --amber-bg: rgba(245,158,11,0.08);
+  --blue: #3b82f6;
+  --blue-bg: rgba(59,130,246,0.08);
+
+  /* ── Typography ── */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', Consolas, monospace;
+
+  /* ── Spacing & Radius ── */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* ── Motion ── */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration: 200ms;
+  --duration-slow: 350ms;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+}
+
+/* ═══ Reset & Base ═══════════════════════════════════════════════════════ */
+html { height: 100%; font-size: 14px; }
+body {
+  font-family: var(--font);
+  background: var(--bg-0);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+a { color: var(--accent-hover); text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, select { font-family: inherit; }
+code { font-family: var(--mono); font-size: 0.9em; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
+::selection { background: rgba(229,112,0,0.3); color: #fff; }
+
+/* ═══ Header ═════════════════════════════════════════════════════════════ */
+.header {
+  display: flex; align-items: center; gap: 24px; padding: 0 24px;
+  height: 56px; background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+.header-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em;
+  color: var(--text); white-space: nowrap; user-select: none;
+}
+.header-brand svg {
+  width: 22px; height: 22px; color: var(--accent);
+  transition: transform 0.4s var(--ease-spring);
+}
+.header-brand:hover svg { transform: rotate(12deg) scale(1.1); }
+.header-nav { display: flex; gap: 2px; margin-left: 20px; }
+.nav-tab {
+  position: relative; background: transparent; color: var(--text-3);
+  padding: 8px 18px; border-radius: var(--radius); font-size: 0.84rem;
+  font-weight: 500; transition: color var(--duration) var(--ease), background var(--duration) var(--ease);
+  letter-spacing: -0.01em;
+}
+.nav-tab:hover { color: var(--text-2); background: var(--bg-3); }
+.nav-tab.active { color: var(--accent); }
+.nav-tab::after {
+  content: ''; position: absolute; bottom: -9px; left: 50%; width: 0; height: 2px;
+  background: var(--accent); transition: all 0.3s var(--ease); transform: translateX(-50%);
+  border-radius: 1px;
+}
+.nav-tab.active::after { width: calc(100% - 24px); }
+.header-right {
+  margin-left: auto; display: flex; align-items: center; gap: 10px;
+}
+.header-status {
+  font-size: 0.75rem; color: var(--text-3); font-family: var(--mono);
+  display: flex; align-items: center; gap: 6px;
+}
+.header-status-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s infinite;
+}
+.header-status.disconnected .header-status-dot { background: var(--red); animation: none; }
+
+/* ═══ Main Layout ════════════════════════════════════════════════════════ */
+.main { flex: 1; padding: 24px; max-width: 1480px; width: 100%; margin: 0 auto; }
+.page { display: none; }
+.page.active { display: block; animation: pageEnter 0.35s var(--ease) both; }
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ═══ Page Header ════════════════════════════════════════════════════════ */
+.page-header {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.page-header h2 {
+  font-size: 1.3rem; font-weight: 700; letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--text) 0%, var(--text-2) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.stats-row { display: flex; gap: 16px; margin-left: 8px; }
+.stat-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.8rem; color: var(--text-2);
+}
+.stat-dot {
+  width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+  flex-shrink: 0;
+}
+.stat-dot.running { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+.stat-dot.stopped { background: var(--text-4); }
+.stat-dot.total { background: var(--accent); }
+.header-actions { margin-left: auto; display: flex; gap: 8px; }
+
+/* ═══ Buttons ════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 8px 16px; border-radius: var(--radius); border: 1px solid transparent;
+  font-size: 0.82rem; font-weight: 500; white-space: nowrap;
+  transition: all var(--duration) var(--ease);
+  position: relative; overflow: hidden;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); box-shadow: var(--accent-glow); }
+.btn-secondary {
+  background: var(--bg-3); color: var(--text-2); border-color: var(--border);
+}
+.btn-secondary:hover { color: var(--text); border-color: var(--border-light); background: var(--bg-4); }
+.btn-danger { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+.btn-danger:hover { background: var(--red); color: #fff; border-color: var(--red); }
+.btn-ghost {
+  background: transparent; color: var(--text-3); border: none; padding: 7px 12px;
+}
+.btn-ghost:hover { color: var(--text-2); background: var(--bg-3); }
+.btn-sm { padding: 5px 10px; font-size: 0.76rem; }
+.btn:disabled { opacity: 0.4; pointer-events: none; }
+.btn-icon {
+  width: 32px; height: 32px; padding: 0; border-radius: var(--radius);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-3); border: 1px solid var(--border);
+  color: var(--text-3); transition: all var(--duration) var(--ease);
+}
+.btn-icon:hover { color: var(--text); border-color: var(--border-light); background: var(--bg-4); }
+.btn-icon:active { transform: scale(0.92); }
+.btn-icon.danger:hover { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+.btn-icon.success:hover { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+.btn-icon svg { width: 15px; height: 15px; }
+
+/* ═══ Tooltip ════════════════════════════════════════════════════════════ */
+.tip { position: relative; }
+.tip::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px);
+  left: 50%; transform: translateX(-50%) translateY(4px); padding: 5px 10px;
+  background: var(--bg-5); border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 500;
+  white-space: nowrap; color: var(--text); opacity: 0; pointer-events: none;
+  transition: all 0.15s var(--ease); z-index: 50; box-shadow: var(--shadow);
+  font-family: var(--font);
+}
+.tip:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ═══ Badge ══════════════════════════════════════════════════════════════ */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
+  border-radius: 20px; font-size: 0.68rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.badge-running {
+  background: var(--green-bg); color: var(--green);
+  border: 1px solid rgba(34,197,94,0.12);
+}
+.badge-running::before { animation: statusPulse 2s infinite; }
+.badge-stopped {
+  background: rgba(85,85,95,0.1); color: var(--text-3);
+  border: 1px solid rgba(85,85,95,0.1);
+}
+.badge-stopped::before { opacity: 0.5; }
+.badge-paused {
+  background: var(--amber-bg); color: var(--amber);
+  border: 1px solid rgba(245,158,11,0.12);
+}
+
+/* ═══ Filter Bar ═════════════════════════════════════════════════════════ */
+.filter-bar {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+  padding: 12px 16px; background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); flex-wrap: wrap;
+}
+.search-wrapper {
+  position: relative; flex: 1; min-width: 180px; max-width: 300px;
+}
+.search-wrapper svg {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: var(--text-3);
+  pointer-events: none; transition: color var(--duration) var(--ease);
+}
+.search-input {
+  width: 100%; padding: 7px 12px 7px 32px; background: var(--bg-2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-size: 0.82rem; outline: none;
+  transition: all var(--duration) var(--ease);
+}
+.search-input::placeholder { color: var(--text-3); }
+.search-input:focus {
+  border-color: var(--accent-border); background: var(--bg-3);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.search-input:focus + svg { color: var(--accent); }
+.filter-divider {
+  width: 1px; height: 24px; background: var(--border); margin: 0 4px;
+}
+.filter-select {
+  padding: 7px 28px 7px 10px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-2); font-size: 0.8rem;
+  outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238b8b98' stroke-width='2'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  transition: all var(--duration) var(--ease);
+}
+.filter-select:hover { border-color: var(--border-light); color: var(--text); }
+.filter-select:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg); }
+.segment-group {
+  display: flex; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 2px; gap: 2px;
+}
+.segment-btn {
+  padding: 5px 12px; background: transparent; color: var(--text-3);
+  font-size: 0.76rem; font-weight: 500; border-radius: calc(var(--radius) - 2px);
+  transition: all var(--duration) var(--ease); letter-spacing: -0.01em;
+}
+.segment-btn:hover:not(.active) { color: var(--text-2); }
+.segment-btn.active {
+  background: var(--accent-bg-hover); color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+.filter-label {
+  font-size: 0.7rem; font-weight: 500; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-right: -4px;
+}
+
+/* ═══ VM Grid ════════════════════════════════════════════════════════════ */
+.vm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 14px;
+}
+
+/* ═══ VM Card ════════════════════════════════════════════════════════════ */
+.vm-card {
+  background: linear-gradient(145deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px;
+  transition: all 0.3s var(--ease);
+  position: relative; overflow: hidden;
+  animation: cardEnter 0.4s var(--ease) both;
+}
+.vm-card::before {
+  content: ''; position: absolute; inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at top, rgba(229,112,0,0.02), transparent 70%);
+  opacity: 0; transition: opacity 0.3s var(--ease);
+  pointer-events: none;
+}
+.vm-card:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 1px rgba(229,112,0,0.06), 0 4px 20px rgba(0,0,0,0.4),
+              0 0 40px rgba(229,112,0,0.04);
+  transform: translateY(-2px) scale(1.005);
+}
+.vm-card:hover::before { opacity: 1; }
+.vm-card:focus-within {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+.vm-card-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 14px;
+}
+.vm-card-name {
+  font-weight: 600; font-size: 0.94rem; color: var(--text);
+  word-break: break-all; line-height: 1.3; letter-spacing: -0.01em;
+}
+.vm-card-id {
+  font-size: 0.72rem; color: var(--text-3); font-family: var(--mono);
+  margin-top: 3px;
+}
+.vm-card-meta {
+  display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.meta-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; background: var(--bg-3); border-radius: var(--radius-sm);
+  font-size: 0.72rem; color: var(--text-2); font-family: var(--mono);
+}
+.meta-chip svg { width: 12px; height: 12px; color: var(--text-3); flex-shrink: 0; }
+.vm-card-stats { margin-bottom: 14px; }
+.stat-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.stat-row:last-child { margin-bottom: 0; }
+.stat-label {
+  font-size: 0.72rem; color: var(--text-3); width: 48px; flex-shrink: 0;
+  font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.stat-value {
+  font-size: 0.72rem; color: var(--text-2); font-family: var(--mono);
+  width: 64px; text-align: right; flex-shrink: 0;
+}
+
+/* ═══ Usage Bars ═════════════════════════════════════════════════════════ */
+.usage-bar {
+  flex: 1; height: 4px; background: var(--bg-4); border-radius: 2px;
+  overflow: hidden; position: relative;
+}
+.usage-fill {
+  height: 100%; border-radius: 2px;
+  transition: width 0.6s var(--ease), background 0.3s;
+  position: relative;
+}
+.usage-fill.low { background: linear-gradient(90deg, #166534, var(--green)); }
+.usage-fill.medium { background: linear-gradient(90deg, var(--accent-dim), var(--accent)); }
+.usage-fill.high { background: linear-gradient(90deg, #991b1b, var(--red)); }
+.usage-fill::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+  animation: shimmerBar 2s infinite;
+}
+@keyframes shimmerBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ═══ VM Card Actions ════════════════════════════════════════════════════ */
+.vm-card-actions {
+  display: flex; gap: 6px; border-top: 1px solid var(--border);
+  padding-top: 14px; margin-top: 2px;
+}
+.vm-card-actions .btn-icon { width: 30px; height: 30px; }
+.vm-card-actions .btn-icon svg { width: 14px; height: 14px; }
+.vm-card-actions .spacer { flex: 1; }
+
+/* ═══ Template Card Override ═════════════════════════════════════════════ */
+.vm-card.template { opacity: 0.5; }
+.vm-card.template::after {
+  content: 'TEMPLATE'; position: absolute; top: 12px; right: -30px;
+  background: var(--accent); color: #fff; font-size: 0.58rem; font-weight: 700;
+  padding: 2px 36px; transform: rotate(45deg); letter-spacing: 0.08em;
+}
+
+/* ═══ Empty State ════════════════════════════════════════════════════════ */
+.empty-state {
+  text-align: center; padding: 80px 24px; color: var(--text-3);
+}
+.empty-state svg { width: 56px; height: 56px; margin-bottom: 18px; opacity: 0.25; }
+.empty-state p { margin-bottom: 6px; font-size: 0.95rem; color: var(--text-2); }
+.empty-state .sub { font-size: 0.82rem; color: var(--text-3); margin-bottom: 20px; }
+
+/* ═══ Loading Skeleton ═══════════════════════════════════════════════════ */
+.skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+.skeleton-card {
+  height: 210px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; position: relative;
+}
+.skeleton-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.02) 50%, transparent 100%);
+  animation: shimmer 1.8s infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ═══ Provision Layout ═══════════════════════════════════════════════════ */
+.provision-layout {
+  display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start;
+}
+@media (max-width: 900px) { .provision-layout { grid-template-columns: 1fr; } }
+
+/* ═══ Panel ══════════════════════════════════════════════════════════════ */
+.panel {
+  background: linear-gradient(145deg, rgba(255,255,255,0.015) 0%, rgba(255,255,255,0.003) 100%);
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px;
+}
+.panel h3 {
+  font-size: 0.95rem; font-weight: 600; margin-bottom: 18px;
+  color: var(--text); letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 8px;
+}
+.panel h3 svg { width: 16px; height: 16px; color: var(--accent); }
+
+/* ═══ Form ═══════════════════════════════════════════════════════════════ */
+.form-group { margin-bottom: 14px; }
+.form-label {
+  display: block; font-size: 0.75rem; font-weight: 500; color: var(--text-2);
+  margin-bottom: 5px;
+}
+.form-input {
+  width: 100%; padding: 9px 12px; background: var(--bg-1);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-size: 0.85rem; outline: none;
+  transition: all var(--duration) var(--ease);
+}
+.form-input:focus {
+  border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.form-input::placeholder { color: var(--text-3); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-divider {
+  font-size: 0.68rem; font-weight: 600; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin: 18px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.form-divider svg { width: 13px; height: 13px; color: var(--accent); opacity: 0.6; }
+
+/* ═══ Provision Progress Panel ═══════════════════════════════════════════ */
+.progress-panel { min-height: 200px; }
+.progress-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 360px; color: var(--text-3); font-size: 0.88rem; text-align: center;
+}
+.progress-empty svg { width: 44px; height: 44px; margin-bottom: 14px; opacity: 0.2; }
+.progress-empty p { max-width: 280px; line-height: 1.6; }
+
+/* ═══ Job Summary ════════════════════════════════════════════════════════ */
+.job-summary {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 14px; font-size: 0.84rem;
+}
+.job-summary.completed { border-color: var(--green-border); }
+.job-summary.failed { border-color: var(--red-border); }
+.job-status { font-weight: 600; }
+.job-status.running { color: var(--accent); }
+.job-status.completed { color: var(--green); }
+.job-status.failed { color: var(--red); }
+.job-progress { color: var(--text-3); font-size: 0.8rem; }
+.job-timer {
+  margin-left: auto; font-family: var(--mono); color: var(--text-3); font-size: 0.78rem;
+}
+
+/* ═══ Provision Card ═════════════════════════════════════════════════════ */
+.prov-card {
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px; margin-bottom: 12px;
+  transition: border-color 0.3s var(--ease);
+  animation: cardEnter 0.4s var(--ease) both;
+}
+.prov-card.done { border-color: var(--green-border); }
+.prov-card.failed { border-color: var(--red-border); }
+.prov-card-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px;
+}
+.prov-card-head h4 {
+  font-size: 0.86rem; font-weight: 600; font-family: var(--mono);
+  color: var(--text); letter-spacing: -0.01em;
+}
+.prov-card-head .prov-vmid {
+  font-size: 0.7rem; color: var(--text-3); font-family: var(--mono);
+}
+
+/* ═══ Pipeline Steps ═════════════════════════════════════════════════════ */
+.prov-steps { list-style: none; position: relative; padding-left: 28px; }
+.prov-steps li {
+  position: relative; padding: 5px 0; font-size: 0.8rem;
+  color: var(--text-4); transition: color 0.3s var(--ease);
+}
+.prov-steps li::before {
+  content: ''; position: absolute; left: -28px; top: 8px;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--bg-1);
+  transition: all 0.3s var(--ease); z-index: 1;
+}
+.prov-steps li::after {
+  content: ''; position: absolute; left: -23px; top: 20px;
+  width: 2px; height: calc(100% + 2px); background: var(--border);
+  transition: background 0.3s var(--ease);
+}
+.prov-steps li:last-child::after { display: none; }
+
+/* Step States */
+.prov-steps li.done { color: var(--green); }
+.prov-steps li.done::before {
+  border-color: var(--green); background: var(--green);
+  box-shadow: 0 0 8px var(--green-glow);
+}
+.prov-steps li.done::after { background: var(--green); }
+.prov-steps li.active { color: var(--accent); font-weight: 500; }
+.prov-steps li.active::before {
+  border-color: var(--accent); background: var(--accent);
+  box-shadow: 0 0 12px rgba(229,112,0,0.4);
+  animation: stepGlow 1.6s infinite;
+}
+.prov-steps li.active::after {
+  background: linear-gradient(to bottom, var(--accent) 0%, var(--border) 100%);
+}
+.prov-steps li.err { color: var(--red); }
+.prov-steps li.err::before { border-color: var(--red); background: var(--red); }
+@keyframes stepGlow {
+  0%, 100% { box-shadow: 0 0 6px rgba(229,112,0,0.3); }
+  50% { box-shadow: 0 0 16px rgba(229,112,0,0.6); }
+}
+
+/* ═══ Provision Results ══════════════════════════════════════════════════ */
+.prov-result {
+  margin-top: 14px; padding: 12px; background: var(--bg-0);
+  border-radius: var(--radius); border: 1px solid var(--border);
+}
+.prov-result .ip-label { font-size: 0.72rem; color: var(--text-3); margin-bottom: 4px; }
+.prov-result .ip {
+  color: var(--green); font-weight: 600; font-family: var(--mono); font-size: 0.9rem;
+}
+.prov-ssh {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); font-family: var(--mono); font-size: 0.74rem;
+  color: var(--text-2); cursor: pointer; transition: all var(--duration) var(--ease);
+  user-select: all;
+}
+.prov-ssh:hover {
+  background: var(--bg-3); color: var(--text); border-color: var(--accent-border);
+}
+.prov-ssh code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prov-ssh .copy-label {
+  font-size: 0.68rem; color: var(--text-3); font-family: var(--font);
+  font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;
+  transition: color var(--duration) var(--ease); flex-shrink: 0;
+}
+.prov-ssh:hover .copy-label { color: var(--accent); }
+.prov-error {
+  margin-top: 10px; padding: 10px 12px; background: var(--red-bg);
+  border: 1px solid var(--red-border); border-radius: var(--radius);
+  font-size: 0.78rem; color: var(--red); font-family: var(--mono);
+  word-break: break-all;
+}
+
+/* ═══ Spinner ════════════════════════════════════════════════════════════ */
+.spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+.spinner-lg { width: 20px; height: 20px; border-width: 2.5px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══ Toast ══════════════════════════════════════════════════════════════ */
+.toast-container {
+  position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+  display: flex; flex-direction: column-reverse; gap: 8px;
+}
+.toast {
+  padding: 12px 18px; border-radius: var(--radius-lg); font-size: 0.82rem;
+  font-weight: 500; min-width: 250px; max-width: 420px;
+  display: flex; align-items: center; gap: 10px;
+  animation: toastEnter 0.35s var(--ease-spring);
+  box-shadow: var(--shadow-lg); backdrop-filter: blur(12px);
+  border: 1px solid transparent;
+}
+.toast-success { background: rgba(6,95,70,0.9); color: #6ee7b7; border-color: rgba(34,197,94,0.2); }
+.toast-error { background: rgba(127,29,29,0.9); color: #fca5a5; border-color: rgba(239,68,68,0.2); }
+.toast-info { background: rgba(30,58,95,0.9); color: #93c5fd; border-color: rgba(59,130,246,0.2); }
+@keyframes toastEnter {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ═══ Dialog ═════════════════════════════════════════════════════════════ */
+.dialog-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  animation: backdropIn 0.15s var(--ease);
+  backdrop-filter: blur(4px);
+}
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+.dialog {
+  background: var(--bg-2); border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl); padding: 28px; min-width: 380px; max-width: 480px;
+  box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+  animation: dialogIn 0.25s var(--ease-spring);
+}
+@keyframes dialogIn {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.dialog h3 { font-size: 1.05rem; margin-bottom: 8px; font-weight: 600; }
+.dialog p { color: var(--text-2); font-size: 0.88rem; margin-bottom: 22px; line-height: 1.6; }
+.dialog p strong { color: var(--text); }
+.dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ═══ Card Enter Animation ═══════════════════════════════════════════════ */
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ═══ Status Pulse Animation ═════════════════════════════════════════════ */
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ═══ Count Badge ════════════════════════════════════════════════════════ */
+.count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  background: var(--accent-bg); color: var(--accent); border-radius: 10px;
+  font-size: 0.7rem; font-weight: 600; font-family: var(--mono);
+}
+
+/* ═══ Responsive ═════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .header { padding: 0 16px; gap: 12px; }
+  .main { padding: 16px; }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .search-wrapper { max-width: none; }
+  .filter-divider { display: none; }
+  .vm-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div class="toast-container" id="toasts"></div>
+<div id="dialog-root"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Atlas Plane — Frontend Application
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── SVG Icons ─────────────────────────────────────────────────────────── */
+const Icons = {
+  layers: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`,
+  search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
+  plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  play: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
+  stop: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>`,
+  restart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>`,
+  terminal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+  server: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>`,
+  cpu: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>`,
+  memory: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/><path d="M8 11V9"/><path d="M16 11V9"/><path d="M12 11V9"/><path d="M2 15h20"/><path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"/></svg>`,
+  clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  globe: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+  monitor: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+  bolt: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`,
+  copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  disk: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
+  user: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  hash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>`,
+  arrowUpDown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v18"/><path d="M3 7l4-4 4 4"/><path d="M17 21V3"/><path d="M13 17l4 4 4-4"/></svg>`,
+};
+
+/* ── Constants ─────────────────────────────────────────────────────────── */
+const STEP_LABELS = [
+  'Cloning template', 'Configuring hardware', 'Generating SSH certificate',
+  'Writing Cloud-Init', 'Starting VM', 'Discovering IP address'
+];
+const STEP_MAP = {
+  cloning:0, clone_wait:0, clone_done:0,
+  configuring:1, generating_cert:2, writing_snippet:3,
+  booting:4, waiting_ip:5, ready:6, failed:-1
+};
+const ATLAS_VM_PATTERN = /^[a-z]+-[a-z]+-[0-9a-f]{6}$/;
+
+/* ── Application State ─────────────────────────────────────────────────── */
+const state = {
+  page: 'vms',
+  vms: [],
+  vmsLoading: true,
+  config: {},
+  filters: {
+    search: '',
+    node: 'all',
+    provisioning: 'all',
+    status: 'all',
+    sort: 'vmid',
+    sortDir: 'asc'
+  },
+  // Provision
+  activeJobId: null,
+  activeEventSource: null,
+  provVMs: {},
+  jobStartedAt: null,
+  jobTimerInterval: null,
+  jobDone: false,
+  // Loading states for VM actions
+  loadingActions: {}, // vmid -> action
+  jobEndedAt: null
+};
+
+/* ── API Client ────────────────────────────────────────────────────────── */
+async function api(method, path, body) {
+  const opts = { method, headers: {} };
+  if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const r = await fetch('/api' + path, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+/* ── Utilities ─────────────────────────────────────────────────────────── */
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function formatBytes(b) {
+  if (!b || b === 0) return '0 B';
+  if (b >= 1073741824) return (b / 1073741824).toFixed(1) + ' GiB';
+  if (b >= 1048576) return (b / 1048576).toFixed(0) + ' MiB';
+  return (b / 1024).toFixed(0) + ' KiB';
+}
+
+function formatUptime(s) {
+  if (!s || s <= 0) return '—';
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+  return Math.floor(s / 86400) + 'd ' + Math.floor((s % 86400) / 3600) + 'h';
+}
+
+function formatDuration(ms) {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return s + 's';
+  return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+}
+
+function cpuPercent(vm) {
+  if (!vm.cpu || !vm.maxcpu) return 0;
+  return Math.min(Math.round((vm.cpu / vm.maxcpu) * 100), 100);
+}
+
+function memPercent(vm) {
+  if (!vm.mem || !vm.maxmem) return 0;
+  return Math.min(Math.round((vm.mem / vm.maxmem) * 100), 100);
+}
+
+function usageLevel(pct) {
+  if (pct >= 90) return 'high';
+  if (pct >= 60) return 'medium';
+  return 'low';
+}
+
+function isAutoProvisioned(name) {
+  return ATLAS_VM_PATTERN.test(name || '');
+}
+
+function getUniqueNodes(vms) {
+  const nodes = new Set();
+  vms.forEach(vm => { if (vm.node) nodes.add(vm.node); });
+  return Array.from(nodes).sort();
+}
+
+/* ── Toast System ──────────────────────────────────────────────────────── */
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+  el.innerHTML = `<span style="font-size:1.1em;font-weight:700;line-height:1">${icon}</span> ${esc(msg)}`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(8px)';
+    el.style.transition = 'all 0.3s var(--ease)';
+    setTimeout(() => el.remove(), 300);
+  }, 4500);
+}
+
+/* ── Confirm Dialog ────────────────────────────────────────────────────── */
+function showConfirm(title, msg) {
+  return new Promise(resolve => {
+    const root = document.getElementById('dialog-root');
+    root.innerHTML = `<div class="dialog-backdrop">
+      <div class="dialog">
+        <h3>${title}</h3>
+        <p>${msg}</p>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" id="dlg-cancel">Cancel</button>
+          <button class="btn btn-danger" id="dlg-confirm">Confirm</button>
+        </div>
+      </div>
+    </div>`;
+    root.querySelector('#dlg-cancel').onclick = () => { root.innerHTML = ''; resolve(false); };
+    root.querySelector('#dlg-confirm').onclick = () => { root.innerHTML = ''; resolve(true); };
+    root.querySelector('.dialog-backdrop').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) { root.innerHTML = ''; resolve(false); }
+    });
+  });
+}
+
+/* ── Filter Logic ──────────────────────────────────────────────────────── */
+function getFilteredVMs() {
+  let vms = [...state.vms];
+
+  // Search filter
+  if (state.filters.search) {
+    const q = state.filters.search.toLowerCase();
+    vms = vms.filter(vm =>
+      (vm.name || '').toLowerCase().includes(q) ||
+      String(vm.vmid).includes(q)
+    );
+  }
+
+  // Node filter
+  if (state.filters.node !== 'all') {
+    vms = vms.filter(vm => vm.node === state.filters.node);
+  }
+
+  // Provisioning filter
+  if (state.filters.provisioning === 'auto') {
+    vms = vms.filter(vm => isAutoProvisioned(vm.name));
+  } else if (state.filters.provisioning === 'manual') {
+    vms = vms.filter(vm => !isAutoProvisioned(vm.name) && !vm.template);
+  }
+
+  // Status filter
+  if (state.filters.status === 'running') {
+    vms = vms.filter(vm => vm.status === 'running');
+  } else if (state.filters.status === 'stopped') {
+    vms = vms.filter(vm => vm.status === 'stopped');
+  }
+
+  // Sort
+  const dir = state.filters.sortDir === 'asc' ? 1 : -1;
+  vms.sort((a, b) => {
+    switch (state.filters.sort) {
+      case 'vmid': return ((a.vmid || 0) - (b.vmid || 0)) * dir;
+      case 'name': return (a.name || '').localeCompare(b.name || '') * dir;
+      case 'uptime': return ((a.uptime || 0) - (b.uptime || 0)) * dir;
+      case 'cpu': return ((a.cpu || 0) - (b.cpu || 0)) * dir;
+      case 'memory': return ((a.mem || 0) - (b.mem || 0)) * dir;
+      case 'node': return (a.node || '').localeCompare(b.node || '') * dir;
+      default: return 0;
+    }
+  });
+
+  return vms;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Components
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Status Badge ──────────────────────────────────────────────────────── */
+function StatusBadge(status) {
+  const s = (status || 'unknown').toLowerCase();
+  const label = s.charAt(0).toUpperCase() + s.slice(1);
+  let cls = 'badge-stopped';
+  if (s === 'running') cls = 'badge-running';
+  else if (s === 'paused') cls = 'badge-paused';
+  return `<span class="badge ${cls}">${esc(label)}</span>`;
+}
+
+/* ── Usage Bar ─────────────────────────────────────────────────────────── */
+function UsageBar(percent) {
+  const p = Math.max(0, Math.min(100, percent));
+  const level = usageLevel(p);
+  return `<div class="usage-bar"><div class="usage-fill ${level}" style="width:${p}%"></div></div>`;
+}
+
+/* ── VM Card ───────────────────────────────────────────────────────────── */
+function VMCard(vm, idx) {
+  const isTemplate = vm.template === 1;
+  const isRunning = vm.status === 'running';
+  const cPct = cpuPercent(vm);
+  const mPct = memPercent(vm);
+  const memUsed = vm.mem ? formatBytes(vm.mem) : '—';
+  const memTotal = vm.maxmem ? formatBytes(vm.maxmem) : '—';
+  const uptime = isRunning && vm.uptime ? formatUptime(vm.uptime) : null;
+  const nodeStr = esc(vm.node || '—');
+  const loadingAction = state.loadingActions[vm.vmid];
+  const delay = Math.min(idx * 0.03, 0.5);
+
+  let actions = '';
+  if (!isTemplate) {
+    const disableAll = !!loadingAction;
+    if (isRunning) {
+      actions = `
+        <button class="btn-icon tip success" data-tip="Stop" data-action="vm-stop" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
+          ${loadingAction === 'stop' ? '<span class="spinner"></span>' : Icons.stop}
+        </button>
+        <button class="btn-icon tip" data-tip="Restart" data-action="vm-restart" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
+          ${loadingAction === 'restart' ? '<span class="spinner"></span>' : Icons.restart}
+        </button>
+        <button class="btn-icon tip" data-tip="Console" data-action="vm-console" data-vmid="${vm.vmid}" data-node="${nodeStr}">
+          ${Icons.terminal}
+        </button>
+        <span class="spacer"></span>
+        <button class="btn-icon danger tip" data-tip="Delete" disabled>
+          ${Icons.trash}
+        </button>`;
+    } else {
+      actions = `
+        <button class="btn-icon tip success" data-tip="Start" data-action="vm-start" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
+          ${loadingAction === 'start' ? '<span class="spinner"></span>' : Icons.play}
+        </button>
+        <span class="spacer"></span>
+        <button class="btn-icon danger tip" data-tip="Delete" data-action="vm-delete" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
+          ${loadingAction === 'delete' ? '<span class="spinner"></span>' : Icons.trash}
+        </button>`;
+    }
+  }
+
+  return `<div class="vm-card${isTemplate ? ' template' : ''}" style="animation-delay:${delay}s">
+    <div class="vm-card-head">
+      <div>
+        <div class="vm-card-name">${esc(vm.name || 'unnamed')}</div>
+        <div class="vm-card-id">VMID ${vm.vmid}</div>
+      </div>
+      ${StatusBadge(vm.status)}
+    </div>
+    <div class="vm-card-meta">
+      <span class="meta-chip">${Icons.server} ${nodeStr}</span>
+      <span class="meta-chip">${Icons.cpu} ${vm.maxcpu || '—'} vCPU</span>
+      <span class="meta-chip">${Icons.memory} ${vm.maxmem ? formatBytes(vm.maxmem) : '—'}</span>
+      ${uptime ? `<span class="meta-chip">${Icons.clock} ${uptime}</span>` : ''}
+    </div>
+    ${isRunning ? `<div class="vm-card-stats">
+      <div class="stat-row">
+        <span class="stat-label">CPU</span>
+        ${UsageBar(cPct)}
+        <span class="stat-value">${cPct}%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">MEM</span>
+        ${UsageBar(mPct)}
+        <span class="stat-value">${mPct}%</span>
+      </div>
+    </div>` : ''}
+    ${actions ? `<div class="vm-card-actions">${actions}</div>` : ''}
+  </div>`;
+}
+
+/* ── Filter Bar ────────────────────────────────────────────────────────── */
+function FilterBar() {
+  const nodes = getUniqueNodes(state.vms);
+  const { search, node, provisioning, status, sort, sortDir } = state.filters;
+
+  function segBtn(group, value, label) {
+    const active = state.filters[group] === value;
+    return `<button class="segment-btn${active ? ' active' : ''}" data-action="segment" data-group="${group}" data-value="${value}">${label}</button>`;
+  }
+
+  return `<div class="filter-bar">
+    <div class="search-wrapper">
+      <input class="search-input" type="text" id="search-input" placeholder="Search VMs…" value="${esc(search)}">
+      ${Icons.search}
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <span class="filter-label">Node</span>
+    <select class="filter-select" id="filter-node" data-filter="node">
+      <option value="all"${node === 'all' ? ' selected' : ''}>All Nodes</option>
+      ${nodes.map(n => `<option value="${esc(n)}"${node === n ? ' selected' : ''}>${esc(n)}</option>`).join('')}
+    </select>
+
+    <div class="filter-divider"></div>
+
+    <span class="filter-label">Source</span>
+    <div class="segment-group" data-filter-group="provisioning">
+      ${segBtn('provisioning', 'all', 'All')}
+      ${segBtn('provisioning', 'auto', 'Auto')}
+      ${segBtn('provisioning', 'manual', 'Manual')}
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <span class="filter-label">Status</span>
+    <div class="segment-group" data-filter-group="status">
+      ${segBtn('status', 'all', 'All')}
+      ${segBtn('status', 'running', 'Running')}
+      ${segBtn('status', 'stopped', 'Stopped')}
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <span class="filter-label">Sort</span>
+    <select class="filter-select" id="filter-sort" data-filter="sort">
+      <option value="vmid"${sort === 'vmid' ? ' selected' : ''}>VMID</option>
+      <option value="name"${sort === 'name' ? ' selected' : ''}>Name</option>
+      <option value="uptime"${sort === 'uptime' ? ' selected' : ''}>Uptime</option>
+      <option value="cpu"${sort === 'cpu' ? ' selected' : ''}>CPU</option>
+      <option value="memory"${sort === 'memory' ? ' selected' : ''}>Memory</option>
+      <option value="node"${sort === 'node' ? ' selected' : ''}>Node</option>
+    </select>
+    <button class="btn-icon tip" data-tip="${sortDir === 'asc' ? 'Ascending' : 'Descending'}" data-action="toggle-sort-dir" style="width:28px;height:28px">
+      ${Icons.arrowUpDown}
+    </button>
+  </div>`;
+}
+
+/* ── VMs Page ──────────────────────────────────────────────────────────── */
+function VMsPage() {
+  const vms = getFilteredVMs();
+  const allVMs = state.vms.filter(v => !v.template);
+  const running = allVMs.filter(v => v.status === 'running').length;
+  const stopped = allVMs.filter(v => v.status === 'stopped').length;
+  const total = allVMs.length;
+
+  const hasFilters = state.filters.search || state.filters.node !== 'all' ||
+    state.filters.provisioning !== 'all' || state.filters.status !== 'all';
+
+  let content = '';
+  if (state.vmsLoading) {
+    content = `<div class="skeleton-grid">
+      ${Array(6).fill('<div class="skeleton-card"></div>').join('')}
+    </div>`;
+  } else if (vms.length === 0 && total === 0) {
+    content = `<div class="empty-state">
+      ${Icons.monitor}
+      <p>No virtual machines found</p>
+      <p class="sub">Provision your first VM to get started</p>
+      <button class="btn btn-primary" data-action="switch-page" data-page="provision">${Icons.plus} Provision VMs</button>
+    </div>`;
+  } else if (vms.length === 0 && hasFilters) {
+    content = `<div class="empty-state">
+      ${Icons.search}
+      <p>No VMs match your filters</p>
+      <p class="sub">Try adjusting your search or filter criteria</p>
+      <button class="btn btn-secondary" data-action="clear-filters">Clear Filters</button>
+    </div>`;
+  } else {
+    content = `<div class="vm-grid" id="vm-grid-inner">${vms.map((vm, i) => VMCard(vm, i)).join('')}</div>`;
+  }
+
+  return `<section id="page-vms" class="page${state.page === 'vms' ? ' active' : ''}">
+    <div class="page-header">
+      <h2>Virtual Machines</h2>
+      <div class="stats-row">
+        <span class="stat-item"><span class="stat-dot total"></span><strong>${total}</strong>&nbsp;VMs</span>
+        <span class="stat-item"><span class="stat-dot running"></span>${running} Running</span>
+        <span class="stat-item"><span class="stat-dot stopped"></span>${stopped} Stopped</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost btn-sm" data-action="refresh-vms">${Icons.refresh} Refresh</button>
+        <button class="btn btn-primary btn-sm" data-action="switch-page" data-page="provision">${Icons.plus} New VMs</button>
+      </div>
+    </div>
+    ${FilterBar()}
+    <div id="vm-grid">${content}</div>
+  </section>`;
+}
+
+/* ── Provision Step ────────────────────────────────────────────────────── */
+function ProvisionStep(label, idx, currentStepIdx, isVMDone, isVMFailed) {
+  let cls = '';
+  if (isVMFailed && idx === currentStepIdx) cls = 'err';
+  else if (isVMDone || idx < currentStepIdx) cls = 'done';
+  else if (idx === currentStepIdx) cls = isVMFailed ? 'err' : 'active';
+  return `<li class="${cls}">${esc(label)}</li>`;
+}
+
+/* ── Provision Card ────────────────────────────────────────────────────── */
+function ProvisionCard(vmid, vmData) {
+  const vm = vmData;
+  const currentStepIdx = vm.step ? (STEP_MAP[vm.step] ?? -1) : -1;
+  const isDone = vm.step === 'ready';
+  const isFailed = vm.step === 'failed';
+  const cardClass = isDone ? 'done' : isFailed ? 'failed' : '';
+
+  let result = '';
+  if (isDone) {
+    const user = document.getElementById('f-user')?.value || 'debian';
+    const sshCmd = `ssh -i ${vm.keyFile} ${user}@${vm.ip}`;
+    result = `<div class="prov-result">
+      <div class="ip-label">IP Address</div>
+      <div class="ip">${esc(vm.ip)}</div>
+      <div class="prov-ssh" data-action="copy-ssh" data-cmd="${esc(sshCmd)}" title="Click to copy">
+        <code>${esc(sshCmd)}</code>
+        <span class="copy-label">Copy</span>
+      </div>
+    </div>`;
+  }
+  if (isFailed) {
+    result = `<div class="prov-error">${esc(vm.error || vm.message || 'Unknown error')}</div>`;
+  }
+
+  return `<div class="prov-card ${cardClass}">
+    <div class="prov-card-head">
+      <h4>${esc(vm.name)}</h4>
+      <span class="prov-vmid">VMID ${vmid}</span>
+    </div>
+    <ol class="prov-steps">
+      ${STEP_LABELS.map((label, i) => ProvisionStep(label, i, currentStepIdx, isDone, isFailed)).join('')}
+    </ol>
+    ${result}
+  </div>`;
+}
+
+/* ── Provision Pipeline ────────────────────────────────────────────────── */
+function ProvisionPipeline() {
+  const vmids = Object.keys(state.provVMs).sort((a, b) => +a - +b);
+
+  if (vmids.length === 0) {
+    return `<div class="progress-empty">
+      ${Icons.bolt}
+      <p>Configure parameters and launch to begin provisioning your infrastructure</p>
+    </div>`;
+  }
+
+  const endTime = state.jobDone && state.jobEndedAt ? state.jobEndedAt : Date.now();
+  const elapsed = state.jobStartedAt ? formatDuration(endTime - state.jobStartedAt) : '0s';
+  const doneCount = vmids.filter(id => state.provVMs[id].step === 'ready').length;
+  const failCount = vmids.filter(id => state.provVMs[id].step === 'failed').length;
+  const totalCount = vmids.length;
+  const final = state.jobDone;
+
+  let statusClass = 'running', statusText = 'Provisioning…';
+  if (final) {
+    statusClass = failCount > 0 ? 'failed' : 'completed';
+    statusText = failCount > 0 ? `${doneCount} succeeded, ${failCount} failed` : 'All VMs ready';
+  }
+
+  return `
+    <div class="job-summary ${statusClass}">
+      ${final ? '' : '<span class="spinner"></span>'}
+      <span class="job-status ${statusClass}">${statusText}</span>
+      <span class="job-progress">${doneCount + failCount} / ${totalCount}</span>
+      <span class="job-timer" id="job-timer">${elapsed}</span>
+    </div>
+    ${vmids.map(id => ProvisionCard(id, state.provVMs[id])).join('')}
+  `;
+}
+
+/* ── Provision Form ────────────────────────────────────────────────────── */
+function ProvisionForm() {
+  const isRunning = state.activeJobId && !state.jobDone;
+  return `<form id="provision-form" onsubmit="return false">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Template VMID</label>
+        <input class="form-input" type="number" id="f-template" value="9000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">VM Count</label>
+        <input class="form-input" type="number" id="f-count" value="1" min="1" max="20">
+      </div>
+    </div>
+    <div class="form-divider">${Icons.cpu} Hardware</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">CPU Cores</label>
+        <input class="form-input" type="number" id="f-cores" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Memory (MiB)</label>
+        <input class="form-input" type="number" id="f-memory" value="1024" min="128" step="128">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Disk Size</label>
+        <input class="form-input" type="text" id="f-disk-size" value="5G">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Disk Device</label>
+        <input class="form-input" type="text" id="f-disk-device" value="scsi0">
+      </div>
+    </div>
+    <div class="form-divider">${Icons.user} Access</div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-input" type="text" id="f-user" value="debian">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Start VMID</label>
+      <input class="form-input" type="number" id="f-start-id" value="500" min="100">
+    </div>
+    <button type="button" class="btn btn-primary" id="btn-launch" data-action="submit-provision"
+      style="width:100%;justify-content:center;margin-top:10px"
+      ${isRunning ? 'disabled' : ''}>
+      ${isRunning
+        ? '<span class="spinner" style="border-top-color:#fff"></span> Provisioning…'
+        : Icons.bolt + ' Launch VMs'}
+    </button>
+  </form>`;
+}
+
+/* ── Provision Page ────────────────────────────────────────────────────── */
+function ProvisionPage() {
+  return `<section id="page-provision" class="page${state.page === 'provision' ? ' active' : ''}">
+    <div class="page-header">
+      <h2>Provision New VMs</h2>
+    </div>
+    <div class="provision-layout">
+      <div class="panel">
+        <h3>${Icons.settings} Configuration</h3>
+        ${ProvisionForm()}
+      </div>
+      <div class="panel progress-panel">
+        <h3>${Icons.bolt} Pipeline</h3>
+        <div id="prov-content">${ProvisionPipeline()}</div>
+      </div>
+    </div>
+  </section>`;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+function Header() {
+  const connected = !!state.config.proxmoxUrl;
+  const connClass = connected ? '' : ' disconnected';
+  const connText = connected
+    ? `${state.config.proxmoxUrl} / ${state.config.node || ''}`
+    : 'Disconnected';
+
+  return `<header class="header">
+    <div class="header-brand">
+      ${Icons.layers}
+      Atlas Plane
+    </div>
+    <nav class="header-nav">
+      <button class="nav-tab${state.page === 'vms' ? ' active' : ''}" data-action="switch-page" data-page="vms">Virtual Machines</button>
+      <button class="nav-tab${state.page === 'provision' ? ' active' : ''}" data-action="switch-page" data-page="provision">Provision</button>
+    </nav>
+    <div class="header-right">
+      <div class="header-status${connClass}">
+        <span class="header-status-dot"></span>
+        <span>${esc(connText)}</span>
+      </div>
+    </div>
+  </header>`;
+}
+
+/* ── App Root ──────────────────────────────────────────────────────────── */
+function App() {
+  return `${Header()}
+  <main class="main">
+    ${VMsPage()}
+    ${ProvisionPage()}
+  </main>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Render System
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function render() {
+  document.getElementById('app').innerHTML = App();
+  attachPostRenderHooks();
+}
+
+function renderVMGrid() {
+  const container = document.getElementById('vm-grid');
+  if (!container) return;
+  const vms = getFilteredVMs();
+  const allVMs = state.vms.filter(v => !v.template);
+  const running = allVMs.filter(v => v.status === 'running').length;
+  const stopped = allVMs.filter(v => v.status === 'stopped').length;
+  const total = allVMs.length;
+
+  const hasFilters = state.filters.search || state.filters.node !== 'all' ||
+    state.filters.provisioning !== 'all' || state.filters.status !== 'all';
+
+  if (state.vmsLoading) {
+    container.innerHTML = `<div class="skeleton-grid">
+      ${Array(6).fill('<div class="skeleton-card"></div>').join('')}
+    </div>`;
+  } else if (vms.length === 0 && total === 0) {
+    container.innerHTML = `<div class="empty-state">
+      ${Icons.monitor}
+      <p>No virtual machines found</p>
+      <p class="sub">Provision your first VM to get started</p>
+      <button class="btn btn-primary" data-action="switch-page" data-page="provision">${Icons.plus} Provision VMs</button>
+    </div>`;
+  } else if (vms.length === 0 && hasFilters) {
+    container.innerHTML = `<div class="empty-state">
+      ${Icons.search}
+      <p>No VMs match your filters</p>
+      <p class="sub">Try adjusting your search or filter criteria</p>
+      <button class="btn btn-secondary" data-action="clear-filters">Clear Filters</button>
+    </div>`;
+  } else {
+    container.innerHTML = `<div class="vm-grid" id="vm-grid-inner">${vms.map((vm, i) => VMCard(vm, i)).join('')}</div>`;
+  }
+
+  // Update stats
+  const statsEl = document.querySelector('.stats-row');
+  if (statsEl) {
+    statsEl.innerHTML = `
+      <span class="stat-item"><span class="stat-dot total"></span><strong>${total}</strong>&nbsp;VMs</span>
+      <span class="stat-item"><span class="stat-dot running"></span>${running} Running</span>
+      <span class="stat-item"><span class="stat-dot stopped"></span>${stopped} Stopped</span>`;
+  }
+}
+
+function renderProvisionProgress() {
+  const panel = document.getElementById('prov-content');
+  if (panel) panel.innerHTML = ProvisionPipeline();
+}
+
+function attachPostRenderHooks() {
+  // Restore search value focus if needed
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Event Handling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+document.addEventListener('click', async (e) => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+
+  const action = el.dataset.action;
+
+  switch (action) {
+    case 'switch-page':
+      switchPage(el.dataset.page);
+      break;
+
+    case 'refresh-vms':
+      el.disabled = true;
+      el.querySelector('svg')?.setAttribute('style', 'animation: spin 0.6s linear infinite');
+      await loadVMs();
+      el.disabled = false;
+      el.querySelector('svg')?.removeAttribute('style');
+      break;
+
+    case 'vm-start':
+    case 'vm-stop':
+    case 'vm-restart':
+    case 'vm-delete': {
+      const vmid = +el.dataset.vmid;
+      const name = el.dataset.vmname;
+      const act = action.replace('vm-', '');
+      await handleVMAction(act, vmid, name);
+      break;
+    }
+
+    case 'vm-console': {
+      const vmid = el.dataset.vmid;
+      const node = el.dataset.node;
+      if (state.config.proxmoxUrl) {
+        window.open(`${state.config.proxmoxUrl}/?console=kvm&vmid=${vmid}&vmnode=${node}&novnc=1`, '_blank');
+      } else {
+        toast('Proxmox URL not configured', 'error');
+      }
+      break;
+    }
+
+    case 'copy-ssh': {
+      const cmd = el.dataset.cmd;
+      if (cmd) {
+        await navigator.clipboard.writeText(cmd);
+        toast('SSH command copied', 'success');
+      }
+      break;
+    }
+
+    case 'submit-provision':
+      await submitProvision();
+      break;
+
+    case 'toggle-sort-dir':
+      state.filters.sortDir = state.filters.sortDir === 'asc' ? 'desc' : 'asc';
+      renderVMGrid();
+      // Update sort dir button tooltip
+      el.dataset.tip = state.filters.sortDir === 'asc' ? 'Ascending' : 'Descending';
+      break;
+
+    case 'clear-filters':
+      state.filters = { search: '', node: 'all', provisioning: 'all', status: 'all', sort: 'vmid', sortDir: 'asc' };
+      render();
+      break;
+
+    case 'segment': {
+      const group = el.dataset.group;
+      const value = el.dataset.value;
+      state.filters[group] = value;
+      // Update active segment visually
+      el.closest('.segment-group').querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      renderVMGrid();
+      break;
+    }
+  }
+});
+
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'filter-node') {
+    state.filters.node = e.target.value;
+    renderVMGrid();
+  }
+  if (e.target.id === 'filter-sort') {
+    state.filters.sort = e.target.value;
+    renderVMGrid();
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'search-input') {
+    state.filters.search = e.target.value;
+    renderVMGrid();
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Navigation
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function switchPage(page) {
+  if (state.page === page) return;
+  state.page = page;
+  render();
+  if (page === 'vms') loadVMs();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VM Actions
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function handleVMAction(action, vmid, name) {
+  if (action === 'delete') {
+    const yes = await showConfirm('Delete VM',
+      `Permanently destroy <strong>${esc(name || '')}</strong> (VMID ${vmid})?<br>This action cannot be undone.`);
+    if (!yes) return;
+  }
+
+  state.loadingActions[vmid] = action;
+  renderVMGrid();
+
+  try {
+    if (action === 'start') await api('POST', `/vms/${vmid}/start`);
+    else if (action === 'stop') await api('POST', `/vms/${vmid}/stop`);
+    else if (action === 'restart') await api('POST', `/vms/${vmid}/restart`);
+    else if (action === 'delete') await api('DELETE', `/vms/${vmid}`);
+
+    const pastTense = action === 'delete' ? 'deleted' : action === 'stop' ? 'stopped' : action === 'start' ? 'started' : 'restarting';
+    toast(`VM ${vmid} ${pastTense} successfully`, 'success');
+    setTimeout(loadVMs, 1200);
+  } catch (err) {
+    toast(`Failed to ${action} VM ${vmid}: ${err.message}`, 'error');
+  } finally {
+    delete state.loadingActions[vmid];
+    renderVMGrid();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VM Loading
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function loadVMs() {
+  try {
+    const vms = await api('GET', '/vms');
+    state.vms = vms || [];
+    state.vmsLoading = false;
+    renderVMGrid();
+    // Update node filter options
+    const nodeSelect = document.getElementById('filter-node');
+    if (nodeSelect) {
+      const currentVal = nodeSelect.value;
+      const nodes = getUniqueNodes(state.vms);
+      nodeSelect.innerHTML = `<option value="all">All Nodes</option>` +
+        nodes.map(n => `<option value="${esc(n)}"${currentVal === n ? ' selected' : ''}>${esc(n)}</option>`).join('');
+    }
+  } catch (e) {
+    state.vms = [];
+    state.vmsLoading = false;
+    renderVMGrid();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Provisioning
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function submitProvision() {
+  const btn = document.getElementById('btn-launch');
+  if (!btn || btn.disabled) return;
+
+  const params = {
+    templateId: +(document.getElementById('f-template')?.value || 9000),
+    vmCount: +(document.getElementById('f-count')?.value || 1),
+    cores: +(document.getElementById('f-cores')?.value || 1),
+    memory: +(document.getElementById('f-memory')?.value || 1024),
+    diskSize: document.getElementById('f-disk-size')?.value || '5G',
+    diskDevice: document.getElementById('f-disk-device')?.value || 'scsi0',
+    user: document.getElementById('f-user')?.value || 'debian',
+    vmStartId: +(document.getElementById('f-start-id')?.value || 500),
+  };
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="border-top-color:#fff"></span> Launching…';
+
+  try {
+    const resp = await api('POST', '/provision', params);
+    state.activeJobId = resp.jobId;
+    state.provVMs = {};
+    state.jobDone = false;
+    state.jobEndedAt = null;
+    (resp.specs || []).forEach(s => {
+      state.provVMs[s.VMID] = { name: s.Name, step: null, ip: null, keyFile: null, error: null, message: null };
+    });
+    state.jobStartedAt = Date.now();
+    renderProvisionProgress();
+    connectSSE(resp.jobId);
+    startJobTimer();
+  } catch (err) {
+    toast('Provision failed: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = Icons.bolt + ' Launch VMs';
+  }
+}
+
+function connectSSE(jobId) {
+  if (state.activeEventSource) state.activeEventSource.close();
+  state.activeEventSource = new EventSource('/api/jobs/' + jobId + '/events');
+
+  state.activeEventSource.onmessage = (e) => {
+    const ev = JSON.parse(e.data);
+
+    if (ev.step === 'job_complete') {
+      state.activeEventSource.close();
+      state.activeEventSource = null;
+      state.jobDone = true;
+      state.jobEndedAt = Date.now();
+      stopJobTimer();
+      renderProvisionProgress();
+
+      const btn = document.getElementById('btn-launch');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = Icons.bolt + ' Launch VMs';
+      }
+
+      toast(ev.message, ev.message.includes('0 failed') ? 'success' : 'error');
+      loadVMs();
+      return;
+    }
+
+    if (ev.vmid && state.provVMs[ev.vmid]) {
+      const vm = state.provVMs[ev.vmid];
+      vm.step = ev.step;
+      vm.message = ev.message;
+      if (ev.ip) vm.ip = ev.ip;
+      if (ev.keyFile) vm.keyFile = ev.keyFile;
+      if (ev.error) vm.error = ev.error;
+    }
+    renderProvisionProgress();
+  };
+}
+
+function startJobTimer() {
+  stopJobTimer();
+  state.jobTimerInterval = setInterval(() => {
+    const el = document.getElementById('job-timer');
+    if (el && state.jobStartedAt) {
+      el.textContent = formatDuration(Date.now() - state.jobStartedAt);
+    }
+  }, 1000);
+}
+
+function stopJobTimer() {
+  if (state.jobTimerInterval) {
+    clearInterval(state.jobTimerInterval);
+    state.jobTimerInterval = null;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Config Loading
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function loadConfig() {
+  try {
+    const cfg = await api('GET', '/config');
+    state.config = cfg;
+    // Pre-fill form fields
+    render();
+    setTimeout(() => {
+      if (cfg.templateId) setVal('f-template', cfg.templateId);
+      if (cfg.cores) setVal('f-cores', cfg.cores);
+      if (cfg.memory) setVal('f-memory', cfg.memory);
+      if (cfg.diskSize) setVal('f-disk-size', cfg.diskSize);
+      if (cfg.diskDevice) setVal('f-disk-device', cfg.diskDevice);
+      if (cfg.user) setVal('f-user', cfg.user);
+      if (cfg.vmStartId) setVal('f-start-id', cfg.vmStartId);
+    }, 0);
+  } catch (e) {
+    state.config = {};
+    render();
+  }
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Initialization
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+render();
+loadConfig();
+loadVMs();
+
+// Auto-refresh VMs every 15s when on VMs page
+setInterval(() => {
+  if (state.page === 'vms' && !document.hidden) loadVMs();
+}, 15000);
+
+</script>
+</body>
+</html>
