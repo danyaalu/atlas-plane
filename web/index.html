@@ -4,85 +4,85 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atlas Plane</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e57000' stroke-width='2'><polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f8ef7' stroke-width='2'><polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
-   Atlas Plane — OLED Dark Theme — Design Tokens
+   Atlas Plane — Enterprise Dark Theme — Design Tokens
    ═══════════════════════════════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root {
-  /* ── Background Scale (OLED) ── */
-  --bg-0: #000000;
-  --bg-1: #09090b;
-  --bg-2: #0f0f12;
-  --bg-3: #161619;
-  --bg-4: #1e1e22;
-  --bg-5: #27272b;
+  /* ── Background Scale (Slate Dark) ── */
+  --bg-0: #0c0e13;
+  --bg-1: #111318;
+  --bg-2: #161921;
+  --bg-3: #1c2028;
+  --bg-4: #232834;
+  --bg-5: #2c3240;
 
   /* ── Borders ── */
-  --border: #1a1a1f;
-  --border-light: #27272e;
-  --border-active: #3a3a44;
+  --border: #1e2330;
+  --border-light: #262d3d;
+  --border-active: #35405a;
 
   /* ── Text Scale ── */
-  --text: #ededf0;
-  --text-2: #8b8b98;
-  --text-3: #55555f;
-  --text-4: #3a3a42;
+  --text: #e8eaf0;
+  --text-2: #8892a8;
+  --text-3: #505a72;
+  --text-4: #353d52;
 
-  /* ── Accent: Proxmox Orange ── */
-  --accent: #e57000;
-  --accent-hover: #ff8a1a;
-  --accent-dim: #b35800;
-  --accent-muted: #994d00;
-  --accent-bg: rgba(229,112,0,0.07);
-  --accent-bg-hover: rgba(229,112,0,0.13);
-  --accent-border: rgba(229,112,0,0.25);
-  --accent-glow: 0 0 24px rgba(229,112,0,0.08);
-  --accent-glow-strong: 0 0 32px rgba(229,112,0,0.15), 0 0 0 1px rgba(229,112,0,0.12);
+  /* ── Accent: Enterprise Blue ── */
+  --accent: #4f8ef7;
+  --accent-hover: #6ba3ff;
+  --accent-dim: #3a6fd4;
+  --accent-muted: #2b53a8;
+  --accent-bg: rgba(79,142,247,0.07);
+  --accent-bg-hover: rgba(79,142,247,0.12);
+  --accent-border: rgba(79,142,247,0.28);
+  --accent-glow: 0 0 24px rgba(79,142,247,0.10);
+  --accent-glow-strong: 0 0 32px rgba(79,142,247,0.18), 0 0 0 1px rgba(79,142,247,0.14);
 
   /* ── Status Colors ── */
-  --green: #22c55e;
-  --green-bg: rgba(34,197,94,0.08);
-  --green-border: rgba(34,197,94,0.2);
-  --green-glow: rgba(34,197,94,0.25);
-  --red: #ef4444;
-  --red-bg: rgba(239,68,68,0.08);
-  --red-border: rgba(239,68,68,0.2);
-  --amber: #f59e0b;
-  --amber-bg: rgba(245,158,11,0.08);
-  --blue: #3b82f6;
-  --blue-bg: rgba(59,130,246,0.08);
+  --green: #34d399;
+  --green-bg: rgba(52,211,153,0.08);
+  --green-border: rgba(52,211,153,0.2);
+  --green-glow: rgba(52,211,153,0.25);
+  --red: #f87171;
+  --red-bg: rgba(248,113,113,0.08);
+  --red-border: rgba(248,113,113,0.2);
+  --amber: #fbbf24;
+  --amber-bg: rgba(251,191,36,0.08);
+  --blue: #4f8ef7;
+  --blue-bg: rgba(79,142,247,0.08);
 
   /* ── Typography ── */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', Consolas, monospace;
 
   /* ── Spacing & Radius ── */
-  --radius-sm: 6px;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 5px;
+  --radius: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
 
   /* ── Motion ── */
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration: 200ms;
-  --duration-slow: 350ms;
+  --duration: 180ms;
+  --duration-slow: 320ms;
 
   /* ── Shadows ── */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-  --shadow: 0 4px 16px rgba(0,0,0,0.5);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+  --shadow: 0 4px 16px rgba(0,0,0,0.55);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.65);
 }
 
 /* ═══ Reset & Base ═══════════════════════════════════════════════════════ */
-html { height: 100%; font-size: 14px; }
+html { height: 100%; font-size: 16px; }
 body {
   font-family: var(--font);
   background: var(--bg-0);
@@ -101,47 +101,54 @@ code { font-family: var(--mono); font-size: 0.9em; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
-::selection { background: rgba(229,112,0,0.3); color: #fff; }
+::selection { background: rgba(79,142,247,0.3); color: #fff; }
 
 /* ═══ Header ═════════════════════════════════════════════════════════════ */
 .header {
-  display: flex; align-items: center; gap: 24px; padding: 0 24px;
-  height: 56px; background: var(--bg-1);
+  display: flex; align-items: center; gap: 24px; padding: 0 28px;
+  height: 54px; background: rgba(17,19,24,0.92);
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 100;
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
 }
 .header-brand {
-  display: flex; align-items: center; gap: 10px;
-  font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em;
+  display: flex; align-items: center; gap: 9px;
+  font-weight: 600; font-size: 0.97rem; letter-spacing: -0.01em;
   color: var(--text); white-space: nowrap; user-select: none;
 }
 .header-brand svg {
-  width: 22px; height: 22px; color: var(--accent);
+  width: 20px; height: 20px; color: var(--accent);
   transition: transform 0.4s var(--ease-spring);
 }
-.header-brand:hover svg { transform: rotate(12deg) scale(1.1); }
+.header-brand:hover svg { transform: rotate(10deg) scale(1.08); }
+.header-brand-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  margin-left: 1px; flex-shrink: 0; opacity: 0.9;
+}
 .header-nav { display: flex; gap: 2px; margin-left: 20px; }
 .nav-tab {
   position: relative; background: transparent; color: var(--text-3);
-  padding: 8px 18px; border-radius: var(--radius); font-size: 0.84rem;
+  padding: 7px 15px; border-radius: var(--radius); font-size: 0.82rem;
   font-weight: 500; transition: color var(--duration) var(--ease), background var(--duration) var(--ease);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
-.nav-tab:hover { color: var(--text-2); background: var(--bg-3); }
-.nav-tab.active { color: var(--accent); }
+.nav-tab:hover { color: var(--text-2); background: rgba(255,255,255,0.04); }
+.nav-tab.active { color: var(--text); }
 .nav-tab::after {
-  content: ''; position: absolute; bottom: -9px; left: 50%; width: 0; height: 2px;
+  content: ''; position: absolute; bottom: -10px; left: 50%; width: 0; height: 2px;
   background: var(--accent); transition: all 0.3s var(--ease); transform: translateX(-50%);
-  border-radius: 1px;
+  border-radius: 2px;
 }
-.nav-tab.active::after { width: calc(100% - 24px); }
+.nav-tab.active::after { width: calc(100% - 20px); }
 .header-right {
   margin-left: auto; display: flex; align-items: center; gap: 10px;
 }
 .header-status {
-  font-size: 0.75rem; color: var(--text-3); font-family: var(--mono);
+  font-size: 0.73rem; color: var(--text-3); font-family: var(--font);
   display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border); border-radius: 20px;
 }
 .header-status-dot {
   width: 6px; height: 6px; border-radius: 50%; background: var(--green);
@@ -160,13 +167,11 @@ code { font-family: var(--mono); font-size: 0.9em; }
 
 /* ═══ Page Header ════════════════════════════════════════════════════════ */
 .page-header {
-  display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 16px; margin-bottom: 22px; flex-wrap: wrap;
 }
 .page-header h2 {
-  font-size: 1.3rem; font-weight: 700; letter-spacing: -0.03em;
-  background: linear-gradient(135deg, var(--text) 0%, var(--text-2) 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 1.15rem; font-weight: 600; letter-spacing: -0.025em;
+  color: var(--text);
 }
 .stats-row { display: flex; gap: 16px; margin-left: 8px; }
 .stat-item {
@@ -235,33 +240,33 @@ code { font-family: var(--mono); font-size: 0.9em; }
 
 /* ═══ Badge ══════════════════════════════════════════════════════════════ */
 .badge {
-  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
-  border-radius: 20px; font-size: 0.68rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.05em;
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px;
+  border-radius: 4px; font-size: 0.67rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
 }
 .badge::before {
   content: ''; width: 6px; height: 6px; border-radius: 50%;
   background: currentColor; flex-shrink: 0;
 }
 .badge-running {
-  background: var(--green-bg); color: var(--green);
-  border: 1px solid rgba(34,197,94,0.12);
+  background: rgba(52,211,153,0.1); color: var(--green);
+  border: 1px solid rgba(52,211,153,0.18);
 }
 .badge-running::before { animation: statusPulse 2s infinite; }
 .badge-stopped {
-  background: rgba(85,85,95,0.1); color: var(--text-3);
-  border: 1px solid rgba(85,85,95,0.1);
+  background: rgba(80,90,114,0.15); color: var(--text-3);
+  border: 1px solid rgba(80,90,114,0.18);
 }
-.badge-stopped::before { opacity: 0.5; }
+.badge-stopped::before { opacity: 0.45; }
 .badge-paused {
   background: var(--amber-bg); color: var(--amber);
-  border: 1px solid rgba(245,158,11,0.12);
+  border: 1px solid rgba(251,191,36,0.18);
 }
 
 /* ═══ Filter Bar ═════════════════════════════════════════════════════════ */
 .filter-bar {
   display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
-  padding: 12px 16px; background: var(--bg-1); border: 1px solid var(--border);
+  padding: 10px 14px; background: var(--bg-1); border: 1px solid var(--border);
   border-radius: var(--radius-lg); flex-wrap: wrap;
 }
 .search-wrapper {
@@ -273,7 +278,7 @@ code { font-family: var(--mono); font-size: 0.9em; }
   pointer-events: none; transition: color var(--duration) var(--ease);
 }
 .search-input {
-  width: 100%; padding: 7px 12px 7px 32px; background: var(--bg-2);
+  width: 100%; padding: 6px 12px 6px 32px; background: var(--bg-3);
   border: 1px solid var(--border); border-radius: var(--radius);
   color: var(--text); font-size: 0.82rem; outline: none;
   transition: all var(--duration) var(--ease);
@@ -281,22 +286,22 @@ code { font-family: var(--mono); font-size: 0.9em; }
 .search-input::placeholder { color: var(--text-3); }
 .search-input:focus {
   border-color: var(--accent-border); background: var(--bg-3);
-  box-shadow: 0 0 0 3px var(--accent-bg);
+  box-shadow: 0 0 0 3px rgba(79,142,247,0.08);
 }
 .search-input:focus + svg { color: var(--accent); }
 .filter-divider {
   width: 1px; height: 24px; background: var(--border); margin: 0 4px;
 }
 .filter-select {
-  padding: 7px 28px 7px 10px; background: var(--bg-2); border: 1px solid var(--border);
-  border-radius: var(--radius); color: var(--text-2); font-size: 0.8rem;
+  padding: 6px 26px 6px 10px; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-2); font-size: 0.79rem;
   outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238b8b98' stroke-width='2'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238892a8' stroke-width='2'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 8px center;
   transition: all var(--duration) var(--ease);
 }
 .filter-select:hover { border-color: var(--border-light); color: var(--text); }
-.filter-select:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg); }
+.filter-select:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px rgba(79,142,247,0.08); }
 .segment-group {
   display: flex; background: var(--bg-2); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 2px; gap: 2px;
@@ -308,8 +313,8 @@ code { font-family: var(--mono); font-size: 0.9em; }
 }
 .segment-btn:hover:not(.active) { color: var(--text-2); }
 .segment-btn.active {
-  background: var(--accent-bg-hover); color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent-border);
+  background: var(--bg-5); color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 .filter-label {
   font-size: 0.7rem; font-weight: 500; color: var(--text-3);
@@ -325,25 +330,24 @@ code { font-family: var(--mono); font-size: 0.9em; }
 
 /* ═══ VM Card ════════════════════════════════════════════════════════════ */
 .vm-card {
-  background: linear-gradient(145deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%);
+  background: var(--bg-2);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 18px;
-  transition: all 0.3s var(--ease);
+  border-radius: var(--radius-lg); padding: 18px 20px;
+  transition: all 0.25s var(--ease);
   position: relative; overflow: hidden;
-  animation: cardEnter 0.4s var(--ease) both;
+  animation: cardEnter 0.35s var(--ease) both;
 }
 .vm-card::before {
   content: ''; position: absolute; inset: 0;
   border-radius: inherit;
-  background: radial-gradient(ellipse at top, rgba(229,112,0,0.02), transparent 70%);
-  opacity: 0; transition: opacity 0.3s var(--ease);
+  background: radial-gradient(ellipse at top left, rgba(79,142,247,0.04), transparent 60%);
+  opacity: 0; transition: opacity 0.25s var(--ease);
   pointer-events: none;
 }
 .vm-card:hover {
-  border-color: var(--accent-border);
-  box-shadow: 0 0 0 1px rgba(229,112,0,0.06), 0 4px 20px rgba(0,0,0,0.4),
-              0 0 40px rgba(229,112,0,0.04);
-  transform: translateY(-2px) scale(1.005);
+  border-color: var(--border-light);
+  box-shadow: 0 0 0 1px rgba(79,142,247,0.08), 0 6px 24px rgba(0,0,0,0.45);
+  transform: translateY(-1px);
 }
 .vm-card:hover::before { opacity: 1; }
 .vm-card:focus-within {
@@ -355,12 +359,12 @@ code { font-family: var(--mono); font-size: 0.9em; }
   margin-bottom: 14px;
 }
 .vm-card-name {
-  font-weight: 600; font-size: 0.94rem; color: var(--text);
+  font-weight: 600; font-size: 0.9rem; color: var(--text);
   word-break: break-all; line-height: 1.3; letter-spacing: -0.01em;
 }
 .vm-card-id {
   font-size: 0.72rem; color: var(--text-3); font-family: var(--mono);
-  margin-top: 3px;
+  margin-top: 2px; letter-spacing: 0.02em;
 }
 .vm-card-meta {
   display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
@@ -395,13 +399,13 @@ code { font-family: var(--mono); font-size: 0.9em; }
   transition: width 0.6s var(--ease), background 0.3s;
   position: relative;
 }
-.usage-fill.low { background: linear-gradient(90deg, #166534, var(--green)); }
-.usage-fill.medium { background: linear-gradient(90deg, var(--accent-dim), var(--accent)); }
-.usage-fill.high { background: linear-gradient(90deg, #991b1b, var(--red)); }
+.usage-fill.low { background: linear-gradient(90deg, #0d6344, var(--green)); }
+.usage-fill.medium { background: linear-gradient(90deg, var(--accent-muted), var(--accent)); }
+.usage-fill.high { background: linear-gradient(90deg, #8b1c1c, var(--red)); }
 .usage-fill::after {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
-  animation: shimmerBar 2s infinite;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.10) 50%, transparent 100%);
+  animation: shimmerBar 2.5s infinite;
 }
 @keyframes shimmerBar {
   0% { transform: translateX(-100%); }
@@ -421,7 +425,7 @@ code { font-family: var(--mono); font-size: 0.9em; }
 .vm-card.template { opacity: 0.5; }
 .vm-card.template::after {
   content: 'TEMPLATE'; position: absolute; top: 12px; right: -30px;
-  background: var(--accent); color: #fff; font-size: 0.58rem; font-weight: 700;
+  background: var(--bg-5); color: var(--text-3); font-size: 0.55rem; font-weight: 700;
   padding: 2px 36px; transform: rotate(45deg); letter-spacing: 0.08em;
 }
 
@@ -449,15 +453,242 @@ code { font-family: var(--mono); font-size: 0.9em; }
   100% { transform: translateX(100%); }
 }
 
-/* ═══ Provision Layout ═══════════════════════════════════════════════════ */
-.provision-layout {
-  display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start;
+/* ═══ Provision Wizard ═══════════════════════════════════════════════════ */
+/* Provision: full-width block layout */
+.prov-full { width: 100%; }
+.prov-block {
+  padding: 32px 0;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.5s var(--ease), filter 0.5s var(--ease);
 }
-@media (max-width: 900px) { .provision-layout { grid-template-columns: 1fr; } }
+.prov-block:last-child { border-bottom: none; padding-bottom: 8px; }
+.prov-block.locked {
+  opacity: 0.22;
+  pointer-events: none;
+  user-select: none;
+  filter: grayscale(0.4);
+}
+.prov-block-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+}
+.prov-step-badge {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: var(--bg-3); border: 1.5px solid var(--border-active);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 700; color: var(--text-3);
+  font-family: var(--mono); transition: all 0.45s var(--ease);
+}
+.prov-step-badge.active {
+  border-color: var(--accent); color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,142,247,0.12);
+}
+.prov-step-badge.done {
+  background: rgba(34,197,94,0.15); border-color: var(--green); color: var(--green);
+}
+.prov-step-badge.done::after { content: '✓'; font-size: 1rem; line-height: 1; }
+.prov-step-badge.done > span { display: none; }
+.prov-block-title {
+  font-size: 0.96rem; font-weight: 600; color: var(--text); letter-spacing: -0.015em;
+}
+.prov-block-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px;
+  background: var(--accent-bg); border: 1px solid var(--accent-border);
+  border-radius: 4px; font-size: 0.72rem; color: var(--accent); margin-left: 6px;
+  font-weight: 500;
+}
+
+/* Animated section */
+.prov-section { animation: stageEnter 0.35s var(--ease) both; }
+@keyframes stageEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.prov-section-label {
+  font-size: 0.7rem; font-weight: 600; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+}
+.prov-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.prov-section-crumb {
+  font-weight: 500; text-transform: none; letter-spacing: 0;
+  color: var(--text-3); font-size: 0.78rem;
+}
+.prov-section-crumb ~ .prov-section-label::after { display: none; }
+
+/* Template cards */
+.template-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.template-card {
+  background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 20px 20px 16px; cursor: pointer; transition: all 0.22s var(--ease);
+  position: relative; user-select: none; text-align: left;
+}
+.template-card:hover {
+  border-color: var(--border-active); transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+.template-card.selected {
+  border-color: var(--accent-border);
+  background: linear-gradient(145deg, rgba(79,142,247,0.08) 0%, rgba(79,142,247,0.03) 100%);
+  box-shadow: 0 0 0 1px rgba(79,142,247,0.1), 0 4px 16px rgba(0,0,0,0.3);
+}
+.tc-check {
+  position: absolute; top: 12px; right: 12px; width: 20px; height: 20px;
+  border-radius: 50%; border: 2px solid var(--border-active);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s var(--ease); background: var(--bg-1);
+}
+.template-card.selected .tc-check {
+  background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,142,247,0.15);
+}
+.tc-check svg { width: 14px; height: 14px; color: #fff; opacity: 0; transition: opacity 0.2s; }
+.template-card.selected .tc-check svg { opacity: 1; }
+.tc-icon { width: 44px; height: 44px; margin-bottom: 12px; display: block; }
+.tc-name { font-size: 0.94rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.tc-sub { font-size: 0.74rem; color: var(--text-3); }
+.tc-vmid {
+  margin-top: 14px; display: flex; align-items: center; gap: 7px;
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
+.tc-vmid label { font-size: 0.68rem; color: var(--text-3); white-space: nowrap; }
+.tc-vmid input {
+  width: 72px; padding: 4px 8px; background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-2); font-size: 0.74rem;
+  font-family: var(--mono); outline: none; transition: border-color var(--duration) var(--ease);
+}
+.tc-vmid input:focus { border-color: var(--accent-border); }
+
+/* Profile cards */
+.profile-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;
+}
+@media (max-width: 560px) { .profile-grid { grid-template-columns: repeat(2, 1fr); } }
+.profile-card {
+  background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 16px 14px; cursor: pointer; transition: all 0.22s var(--ease);
+  text-align: left; user-select: none;
+}
+.profile-card:hover { border-color: var(--border-active); transform: translateY(-1px); }
+.profile-card.selected {
+  border-color: var(--accent-border);
+  background: linear-gradient(145deg, rgba(79,142,247,0.09) 0%, rgba(79,142,247,0.03) 100%);
+}
+.pc-name {
+  font-size: 0.88rem; font-weight: 600; color: var(--text); margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+.pc-specs { font-size: 0.71rem; color: var(--text-3); line-height: 1.75; font-family: var(--mono); }
+.pc-specs span { display: block; }
+
+/* Profile summary (for non-custom) */
+.profile-summary {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+.ps-name {
+  font-size: 0.84rem; font-weight: 600; color: var(--text); min-width: 60px;
+}
+.ps-specs { font-size: 0.78rem; color: var(--text-3); font-family: var(--mono); }
+
+/* Custom fields expand */
+.custom-fields-wrap {
+  overflow: hidden; transition: max-height 0.5s var(--ease), opacity 0.35s var(--ease);
+  max-height: 0; opacity: 0;
+}
+.custom-fields-wrap.open { max-height: 500px; opacity: 1; }
+
+/* Hardware input mode toggle */
+.input-mode-toggle {
+  display: inline-flex; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: 20px; padding: 2px; flex-shrink: 0;
+}
+.mode-btn {
+  padding: 4px 14px; border-radius: 18px; font-size: 0.72rem; font-weight: 600;
+  color: var(--text-3); cursor: pointer; transition: all 0.2s var(--ease);
+  background: transparent; border: none; outline: none;
+}
+.mode-btn.active { background: var(--bg-1); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.hw-slider-row { margin-bottom: 22px; }
+.hw-slider-row:last-child { margin-bottom: 6px; }
+.hw-slider-header {
+  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px;
+}
+.hw-slider-label {
+  font-size: 0.72rem; font-weight: 600; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.hw-slider-val {
+  font-size: 0.92rem; font-weight: 700; color: var(--text); font-family: var(--mono);
+}
+input[type="range"].hw-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 5px; border-radius: 3px; outline: none; cursor: pointer;
+  background: linear-gradient(to right, var(--accent) 0%, var(--bg-3) 0%);
+}
+input[type="range"].hw-range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: 3px solid var(--bg-0);
+  box-shadow: 0 0 0 1.5px rgba(79,142,247,0.4); transition: transform 0.15s var(--ease);
+}
+input[type="range"].hw-range::-webkit-slider-thumb:hover { transform: scale(1.12); }
+input[type="range"].hw-range::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
+  cursor: pointer; border: 3px solid var(--bg-0); box-shadow: 0 0 0 1.5px rgba(79,142,247,0.4);
+}
+input[type="range"].hw-range::-moz-range-track { height: 5px; background: var(--bg-3); border-radius: 3px; }
+
+/* VM count stepper */
+.count-stepper {
+  display: inline-flex; align-items: center;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden;
+}
+.count-step-btn {
+  width: 38px; height: 40px; display: flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--text-2); font-size: 1.2rem; line-height: 1;
+  border: none; cursor: pointer; transition: all var(--duration) var(--ease);
+}
+.count-step-btn:hover:not(:disabled) { background: var(--bg-3); color: var(--text); }
+.count-step-btn:disabled { opacity: 0.3; cursor: default; }
+.count-value {
+  min-width: 52px; text-align: center; font-size: 1rem; font-weight: 600;
+  color: var(--text); font-family: var(--mono); padding: 0 6px;
+}
+
+/* Wizard bottom action bar */
+.prov-launch-bar {
+  display: flex; gap: 10px; align-items: center; margin-top: 24px;
+  padding-top: 20px; border-top: 1px solid var(--border);
+}
+.prov-back-btn {
+  background: var(--bg-3); border: 1px solid var(--border); color: var(--text-2);
+  padding: 8px 16px; border-radius: var(--radius); font-size: 0.82rem; font-weight: 500;
+  cursor: pointer; transition: all var(--duration) var(--ease);
+}
+.prov-back-btn:hover { color: var(--text); border-color: var(--border-light); }
+
+/* Pipeline view */
+.prov-pipeline-view { animation: pipelineEnter 0.45s var(--ease) both; }
+@keyframes pipelineEnter {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: none; }
+}
+.prov-pipeline-header {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+}
+.prov-config-pill {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 20px;
+  font-size: 0.74rem; color: var(--text-2);
+}
+.prov-config-pill strong { color: var(--text); }
 
 /* ═══ Panel ══════════════════════════════════════════════════════════════ */
 .panel {
-  background: linear-gradient(145deg, rgba(255,255,255,0.015) 0%, rgba(255,255,255,0.003) 100%);
+  background: var(--bg-2);
   border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px;
 }
 .panel h3 {
@@ -474,13 +705,13 @@ code { font-family: var(--mono); font-size: 0.9em; }
   margin-bottom: 5px;
 }
 .form-input {
-  width: 100%; padding: 9px 12px; background: var(--bg-1);
+  width: 100%; padding: 8px 12px; background: var(--bg-0);
   border: 1px solid var(--border); border-radius: var(--radius);
-  color: var(--text); font-size: 0.85rem; outline: none;
+  color: var(--text); font-size: 0.84rem; outline: none;
   transition: all var(--duration) var(--ease);
 }
 .form-input:focus {
-  border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg);
+  border-color: var(--accent-border); box-shadow: 0 0 0 3px rgba(79,142,247,0.08);
 }
 .form-input::placeholder { color: var(--text-3); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -520,10 +751,10 @@ code { font-family: var(--mono); font-size: 0.9em; }
 
 /* ═══ Provision Card ═════════════════════════════════════════════════════ */
 .prov-card {
-  background: var(--bg-1); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 18px; margin-bottom: 12px;
-  transition: border-color 0.3s var(--ease);
-  animation: cardEnter 0.4s var(--ease) both;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px; margin-bottom: 10px;
+  transition: border-color 0.25s var(--ease);
+  animation: cardEnter 0.35s var(--ease) both;
 }
 .prov-card.done { border-color: var(--green-border); }
 .prov-card.failed { border-color: var(--red-border); }
@@ -568,7 +799,7 @@ code { font-family: var(--mono); font-size: 0.9em; }
 .prov-steps li.active { color: var(--accent); font-weight: 500; }
 .prov-steps li.active::before {
   border-color: var(--accent); background: var(--accent);
-  box-shadow: 0 0 12px rgba(229,112,0,0.4);
+  box-shadow: 0 0 10px rgba(79,142,247,0.35);
   animation: stepGlow 1.6s infinite;
 }
 .prov-steps li.active::after {
@@ -577,13 +808,13 @@ code { font-family: var(--mono); font-size: 0.9em; }
 .prov-steps li.err { color: var(--red); }
 .prov-steps li.err::before { border-color: var(--red); background: var(--red); }
 @keyframes stepGlow {
-  0%, 100% { box-shadow: 0 0 6px rgba(229,112,0,0.3); }
-  50% { box-shadow: 0 0 16px rgba(229,112,0,0.6); }
+  0%, 100% { box-shadow: 0 0 5px rgba(79,142,247,0.25); }
+  50% { box-shadow: 0 0 14px rgba(79,142,247,0.55); }
 }
 
 /* ═══ Provision Results ══════════════════════════════════════════════════ */
 .prov-result {
-  margin-top: 14px; padding: 12px; background: var(--bg-0);
+  margin-top: 14px; padding: 14px; background: var(--bg-0);
   border-radius: var(--radius); border: 1px solid var(--border);
 }
 .prov-result-header {
@@ -611,12 +842,12 @@ code { font-family: var(--mono); font-size: 0.9em; }
 .btn-download svg { width: 13px; height: 13px; flex-shrink: 0; }
 .prov-ssh {
   display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border);
+  padding: 10px 14px; background: var(--bg-3); border: 1px solid var(--border);
   border-radius: var(--radius); font-family: var(--mono); font-size: 0.74rem;
   color: var(--text-2); cursor: pointer; transition: all var(--duration) var(--ease);
 }
 .prov-ssh:hover {
-  background: var(--bg-3); color: var(--text); border-color: var(--accent-border);
+  background: var(--bg-4); color: var(--text); border-color: var(--accent-border);
 }
 .prov-ssh code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prov-ssh .copy-label {
@@ -655,9 +886,9 @@ code { font-family: var(--mono); font-size: 0.9em; }
   box-shadow: var(--shadow-lg); backdrop-filter: blur(12px);
   border: 1px solid transparent;
 }
-.toast-success { background: rgba(6,95,70,0.9); color: #6ee7b7; border-color: rgba(34,197,94,0.2); }
-.toast-error { background: rgba(127,29,29,0.9); color: #fca5a5; border-color: rgba(239,68,68,0.2); }
-.toast-info { background: rgba(30,58,95,0.9); color: #93c5fd; border-color: rgba(59,130,246,0.2); }
+.toast-success { background: rgba(10,45,32,0.95); color: #6ee7b7; border-color: rgba(52,211,153,0.25); }
+.toast-error { background: rgba(50,14,14,0.95); color: #fca5a5; border-color: rgba(248,113,113,0.25); }
+.toast-info { background: rgba(15,25,55,0.95); color: #93c5fd; border-color: rgba(79,142,247,0.25); }
 @keyframes toastEnter {
   from { opacity: 0; transform: translateY(16px) scale(0.95); }
   to { opacity: 1; transform: none; }
@@ -672,10 +903,10 @@ code { font-family: var(--mono); font-size: 0.9em; }
 }
 @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
 .dialog {
-  background: var(--bg-2); border: 1px solid var(--border-light);
+  background: var(--bg-3); border: 1px solid var(--border-light);
   border-radius: var(--radius-xl); padding: 28px; min-width: 380px; max-width: 480px;
-  box-shadow: 0 16px 64px rgba(0,0,0,0.5);
-  animation: dialogIn 0.25s var(--ease-spring);
+  box-shadow: 0 20px 70px rgba(0,0,0,0.65);
+  animation: dialogIn 0.22s var(--ease-spring);
 }
 @keyframes dialogIn {
   from { opacity: 0; transform: scale(0.95) translateY(8px); }
@@ -697,12 +928,16 @@ code { font-family: var(--mono); font-size: 0.9em; }
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.85); }
 }
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,0.4); }
+  50% { opacity: 0.85; box-shadow: 0 0 0 4px rgba(52,211,153,0); }
+}
 
 /* ═══ Count Badge ════════════════════════════════════════════════════════ */
 .count-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 20px; height: 20px; padding: 0 6px;
-  background: var(--accent-bg); color: var(--accent); border-radius: 10px;
+  background: var(--bg-4); color: var(--text-2); border-radius: 4px;
   font-size: 0.7rem; font-weight: 600; font-family: var(--mono);
 }
 
@@ -714,6 +949,272 @@ code { font-family: var(--mono); font-size: 0.9em; }
   .search-wrapper { max-width: none; }
   .filter-divider { display: none; }
   .vm-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══ Drawer System ══════════════════════════════════════════════════════ */
+.drawer-backdrop {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(8,10,16,0.72);
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  animation: backdropInFast 0.22s var(--ease) both;
+}
+@keyframes backdropInFast { from { opacity: 0; } to { opacity: 1; } }
+
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 310;
+  width: 520px; max-width: 100vw;
+  background: var(--bg-1);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  box-shadow: -20px 0 60px rgba(0,0,0,0.55), -1px 0 0 rgba(255,255,255,0.03);
+  animation: drawerEnter 0.3s var(--ease) both;
+  overflow: hidden;
+}
+@keyframes drawerEnter {
+  from { transform: translateX(100%); opacity: 0.6; }
+  to   { transform: none; opacity: 1; }
+}
+.drawer-closing {
+  animation: drawerExit 0.22s var(--ease) forwards;
+}
+@keyframes drawerExit {
+  from { transform: none; opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+
+/* ── Drawer Header ─── */
+.drawer-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 58px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-1);
+}
+.drawer-hd-left { display: flex; align-items: center; gap: 10px; }
+.drawer-hd-icon {
+  width: 32px; height: 32px; border-radius: var(--radius);
+  background: var(--accent-bg); border: 1px solid var(--accent-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); flex-shrink: 0;
+}
+.drawer-hd-icon svg { width: 15px; height: 15px; }
+.drawer-title { font-size: 0.9rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+.drawer-subtitle { font-size: 0.74rem; color: var(--text-3); margin-top: 1px; }
+.drawer-close {
+  width: 30px; height: 30px; border-radius: var(--radius);
+  background: transparent; border: 1px solid transparent;
+  color: var(--text-3); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all var(--duration) var(--ease);
+}
+.drawer-close:hover { background: var(--bg-3); border-color: var(--border); color: var(--text); }
+.drawer-close svg { width: 16px; height: 16px; }
+
+/* ── Drawer Body ─── */
+.drawer-body {
+  flex: 1; overflow-y: auto; padding: 0;
+  scrollbar-width: thin; scrollbar-color: var(--border-light) transparent;
+}
+.drawer-body::-webkit-scrollbar { width: 4px; }
+.drawer-body::-webkit-scrollbar-track { background: transparent; }
+.drawer-body::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+/* ── Drawer Section ─── */
+.drawer-section {
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.4s var(--ease), filter 0.4s var(--ease);
+}
+.drawer-section:last-child { border-bottom: none; }
+.drawer-section.locked { opacity: 0.28; pointer-events: none; filter: grayscale(0.3); }
+.drawer-section-hd {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+}
+.drawer-step-num {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 700; font-family: var(--mono);
+  border: 1.5px solid var(--border-active); color: var(--text-3);
+  background: var(--bg-2); transition: all 0.35s var(--ease);
+}
+.drawer-step-num.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.drawer-step-num.done {
+  background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.4);
+  color: var(--green); font-size: 0.8rem;
+}
+.drawer-section-title {
+  font-size: 0.82rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em;
+}
+.drawer-section-chip {
+  margin-left: auto; padding: 2px 9px; border-radius: 4px;
+  font-size: 0.68rem; font-weight: 600; color: var(--accent);
+  background: var(--accent-bg); border: 1px solid var(--accent-border);
+}
+
+/* ── OS Option List ─── */
+.os-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.os-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 14px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s var(--ease);
+  user-select: none; position: relative; text-align: left;
+}
+.os-card:hover { border-color: var(--border-active); background: var(--bg-3); }
+.os-card.selected {
+  border-color: var(--accent-border);
+  background: linear-gradient(135deg, rgba(79,142,247,0.09), rgba(79,142,247,0.03));
+  box-shadow: 0 0 0 1px rgba(79,142,247,0.08);
+}
+.os-img { width: 32px; height: 32px; flex-shrink: 0; display: block; }
+.os-name { font-size: 0.84rem; font-weight: 600; color: var(--text); }
+.os-ver { font-size: 0.7rem; color: var(--text-3); margin-top: 1px; }
+.os-check {
+  position: absolute; top: 10px; right: 10px;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--border-active); background: var(--bg-1);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s var(--ease);
+}
+.os-check svg { width: 10px; height: 10px; color: #fff; opacity: 0; transition: opacity 0.18s; }
+.os-card.selected .os-check { background: var(--accent); border-color: var(--accent); }
+.os-card.selected .os-check svg { opacity: 1; }
+
+/* ── Template VMID row ─── */
+.os-vmid-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px; padding: 10px 14px;
+  background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: var(--radius); gap: 12px; flex-wrap: wrap;
+}
+.os-vmid-item { display: flex; align-items: center; gap: 8px; }
+.os-vmid-item label { font-size: 0.72rem; color: var(--text-3); white-space: nowrap; }
+.os-vmid-item input {
+  width: 70px; padding: 4px 8px; background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-2); font-size: 0.74rem;
+  font-family: var(--mono); outline: none; transition: border-color var(--duration);
+}
+.os-vmid-item input:focus { border-color: var(--accent-border); }
+
+/* ── Instance Type Cards ─── */
+.instance-list { display: flex; flex-direction: column; gap: 8px; }
+.instance-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 16px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s var(--ease);
+  user-select: none; position: relative;
+}
+.instance-card:hover { border-color: var(--border-active); background: var(--bg-3); }
+.instance-card.selected {
+  border-color: var(--accent-border);
+  background: linear-gradient(135deg, rgba(79,142,247,0.09), rgba(79,142,247,0.03));
+  box-shadow: 0 0 0 1px rgba(79,142,247,0.08);
+}
+.instance-radio {
+  width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border-active);
+  background: var(--bg-1); flex-shrink: 0; transition: all 0.18s var(--ease);
+  display: flex; align-items: center; justify-content: center;
+}
+.instance-card.selected .instance-radio {
+  border-color: var(--accent); background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,142,247,0.15);
+}
+.instance-radio::after {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #fff; opacity: 0; transition: opacity 0.18s;
+}
+.instance-card.selected .instance-radio::after { opacity: 1; }
+.instance-name {
+  font-size: 0.86rem; font-weight: 600; color: var(--text); min-width: 56px;
+}
+.instance-specs {
+  flex: 1; display: flex; gap: 12px; flex-wrap: wrap;
+}
+.instance-spec {
+  font-size: 0.74rem; color: var(--text-3); font-family: var(--mono);
+  display: flex; align-items: center; gap: 4px;
+}
+.instance-spec svg { width: 11px; height: 11px; color: var(--text-4); flex-shrink: 0; }
+.instance-badge {
+  font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0;
+}
+.instance-badge.popular { background: rgba(79,142,247,0.12); color: var(--accent); border: 1px solid var(--accent-border); }
+
+/* ── Custom expand inside drawer ─── */
+.drawer-custom-expand {
+  overflow: hidden; transition: max-height 0.45s var(--ease), opacity 0.3s var(--ease);
+  max-height: 0; opacity: 0;
+}
+.drawer-custom-expand.open { max-height: 600px; opacity: 1; }
+.dcx-inner { padding-top: 14px; }
+
+/* ── Quantity Section ─── */
+.qty-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; padding: 14px 0;
+}
+.qty-label-grp .qty-title { font-size: 0.84rem; font-weight: 500; color: var(--text); }
+.qty-label-grp .qty-sub { font-size: 0.74rem; color: var(--text-3); margin-top: 2px; }
+.qty-stepper {
+  display: flex; align-items: center;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; flex-shrink: 0;
+}
+.qty-btn {
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--text-2); font-size: 1.1rem; line-height: 1;
+  border: none; cursor: pointer; transition: all var(--duration) var(--ease);
+}
+.qty-btn:hover:not(:disabled) { background: var(--bg-3); color: var(--text); }
+.qty-btn:disabled { opacity: 0.3; cursor: default; }
+.qty-val {
+  min-width: 48px; text-align: center; font-size: 0.96rem; font-weight: 600;
+  color: var(--text); font-family: var(--mono); padding: 0 4px;
+}
+.start-vmid-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-top: 2px;
+}
+.start-vmid-row label { font-size: 0.75rem; color: var(--text-2); }
+.start-vmid-row input {
+  width: 80px; padding: 5px 9px; background: var(--bg-0); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-size: 0.8rem;
+  font-family: var(--mono); outline: none;
+}
+.start-vmid-row input:focus { border-color: var(--accent-border); }
+
+/* ── Drawer Footer ─── */
+.drawer-ft {
+  flex-shrink: 0; padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-1);
+  display: flex; align-items: center; gap: 10px;
+}
+.drawer-ft .spacer { flex: 1; }
+.drawer-cost-est {
+  font-size: 0.74rem; color: var(--text-3); line-height: 1.4;
+}
+.drawer-cost-est strong { color: var(--text-2); font-weight: 600; }
+
+/* ── Drawer Pipeline View ─── */
+.drawer-pipeline { padding: 16px 24px; }
+
+/* ── Main content blur when drawer open ─── */
+.app-root { display: flex; flex-direction: column; min-height: 100vh; }
+.layout-blur > header,
+.layout-blur > main {
+  filter: blur(3px) brightness(0.6) saturate(0.8);
+  transition: filter 0.3s var(--ease);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Responsive drawer ─── */
+@media (max-width: 600px) {
+  .drawer { width: 100vw; border-left: none; }
+  .os-grid { grid-template-columns: 1fr 1fr; }
 }
 </style>
 </head>
@@ -752,6 +1253,10 @@ const Icons = {
   user: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
   hash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>`,
   arrowUpDown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v18"/><path d="M3 7l4-4 4 4"/><path d="M17 21V3"/><path d="M13 17l4 4 4-4"/></svg>`,
+  chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
+  x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  rocketLaunch: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2m2-6-3 3"/><path d="M20 4a2 2 0 0 0-2-2S9 3 4 12l8 8c9-5 10-14 10-14z"/><circle cx="11.5" cy="12.5" r="1.5"/></svg>`,
 };
 
 /* ── Constants ─────────────────────────────────────────────────────────── */
@@ -769,6 +1274,7 @@ const ATLAS_VM_PATTERN = /^[a-z]+-[a-z]+-[0-9a-f]{6}$/;
 /* ── Application State ─────────────────────────────────────────────────── */
 const state = {
   page: 'vms',
+  drawerOpen: false,
   vms: [],
   vmsLoading: true,
   config: {},
@@ -789,7 +1295,20 @@ const state = {
   jobDone: false,
   // Loading states for VM actions
   loadingActions: {}, // vmid -> action
-  jobEndedAt: null
+  jobEndedAt: null,
+  // Provision wizard
+  prov: {
+    stage: 'template',   // 'template' | 'profile' | 'count' | 'running' | 'done'
+    template: null,      // 'debian12' | 'ubuntu2404'
+    profile: null,       // 'small' | 'medium' | 'large' | 'custom'
+    vmCount: 1,
+    customCores: 2,
+    customMemory: 2048,
+    customDisk: '20G',
+    inputMode: 'slider',   // 'slider' | 'number'
+    templateIds: { debian12: 9000, ubuntu2404: 9001 },
+    vmStartId: 500,
+  },
 };
 
 /* ── API Client ────────────────────────────────────────────────────────── */
@@ -803,6 +1322,31 @@ async function api(method, path, body) {
   const data = await r.json();
   if (!r.ok) throw new Error(data.error || 'Request failed');
   return data;
+}
+
+/* ── Drawer Controls ───────────────────────────────────────────────────── */
+function openDrawer() {
+  state.drawerOpen = true;
+  render();
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  if (state.prov.stage === 'running') return; // prevent closing mid-provision
+  const drawer = document.querySelector('.drawer');
+  const backdrop = document.querySelector('.drawer-backdrop');
+  if (drawer) {
+    drawer.classList.add('drawer-closing');
+    if (backdrop) backdrop.style.animation = 'backdropInFast 0.18s var(--ease) reverse forwards';
+    setTimeout(() => {
+      state.drawerOpen = false;
+      document.body.style.overflow = '';
+      render();
+    }, 200);
+  } else {
+    state.drawerOpen = false;
+    document.body.style.overflow = '';
+  }
 }
 
 /* ── Utilities ─────────────────────────────────────────────────────────── */
@@ -1118,8 +1662,8 @@ function VMsPage() {
     content = `<div class="empty-state">
       ${Icons.monitor}
       <p>No virtual machines found</p>
-      <p class="sub">Provision your first VM to get started</p>
-      <button class="btn btn-primary" data-action="switch-page" data-page="provision">${Icons.plus} Provision VMs</button>
+      <p class="sub">Deploy your first VM to get started</p>
+      <button class="btn btn-primary" data-action="open-drawer">${Icons.plus} Deploy VM</button>
     </div>`;
   } else if (vms.length === 0 && hasFilters) {
     content = `<div class="empty-state">
@@ -1142,7 +1686,7 @@ function VMsPage() {
       </div>
       <div class="header-actions">
         <button class="btn btn-ghost btn-sm" data-action="refresh-vms">${Icons.refresh} Refresh</button>
-        <button class="btn btn-primary btn-sm" data-action="switch-page" data-page="provision">${Icons.plus} New VMs</button>
+        <button class="btn btn-primary btn-sm" data-action="open-drawer">${Icons.plus} Deploy VM</button>
       </div>
     </div>
     ${FilterBar()}
@@ -1169,7 +1713,8 @@ function ProvisionCard(vmid, vmData) {
 
   let result = '';
   if (isDone) {
-    const user = document.getElementById('f-user')?.value || 'debian';
+    const tmplObj = TEMPLATES.find(t => t.id === state.prov.template);
+    const user = tmplObj?.user || 'debian';
     const keyBase = vm.keyFile ? vm.keyFile.replace(/^\.\//, '') : '';
     const downloadUrl = `/api/keys/${keyBase}`;
     const sshCmd = `chmod 600 ~/Downloads/${keyBase} && ssh -i ~/Downloads/${keyBase} ${user}@${vm.ip}`;
@@ -1242,100 +1787,486 @@ function ProvisionPipeline() {
   `;
 }
 
-/* ── Provision Form ────────────────────────────────────────────────────── */
-function ProvisionForm() {
-  const isRunning = state.activeJobId && !state.jobDone;
-  return `<form id="provision-form" onsubmit="return false">
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Template VMID</label>
-        <input class="form-input" type="number" id="f-template" value="9000">
+/* ── Provision Constants ───────────────────────────────────────────────── */
+const DISTRO_ICONS = {
+  debian12:   `<img src="https://cdn.simpleicons.org/debian" alt="Debian" style="width:44px;height:44px;display:block">`,
+  ubuntu2404: `<img src="https://cdn.simpleicons.org/ubuntu" alt="Ubuntu" style="width:44px;height:44px;display:block">`,
+};
+
+const TEMPLATES = [
+  { id: 'debian12',   label: 'Debian 12',    sub: 'Bookworm · LTS', user: 'debian' },
+  { id: 'ubuntu2404', label: 'Ubuntu 24.04', sub: 'Noble Numbat · LTS', user: 'ubuntu' },
+];
+
+/* ── Provision helper utilities ───────────────────────────────────────── */
+function parseDiskGB(s) { return parseInt(s, 10) || 20; }
+
+function customFieldsInnerHTML() {
+  const isSlider = state.prov.inputMode === 'slider';
+  const diskGB   = parseDiskGB(state.prov.customDisk);
+  const memGBstr = state.prov.customMemory >= 1024
+    ? (state.prov.customMemory / 1024).toFixed(1).replace(/\.0$/, '') + ' GB'
+    : state.prov.customMemory + ' MiB';
+
+  const header = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="prov-section-label" style="margin-bottom:0;flex:1">Hardware</div>
+      <div class="input-mode-toggle">
+        <button class="mode-btn${isSlider ? ' active' : ''}" data-action="set-input-mode" data-mode="slider">Sliders</button>
+        <button class="mode-btn${!isSlider ? ' active' : ''}" data-action="set-input-mode" data-mode="number">Manual</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">VM Count</label>
-        <input class="form-input" type="number" id="f-count" value="1" min="1" max="20">
+    </div>`;
+
+  const sliders = `
+    <div class="hw-slider-row">
+      <div class="hw-slider-header">
+        <span class="hw-slider-label">CPU Cores</span>
+        <span class="hw-slider-val" id="hw-val-cores">${state.prov.customCores} vCPU</span>
       </div>
+      <input type="range" class="hw-range" data-field="cores"
+        min="1" max="32" step="1" value="${state.prov.customCores}">
     </div>
-    <div class="form-divider">${Icons.cpu} Hardware</div>
-    <div class="form-row">
-      <div class="form-group">
+    <div class="hw-slider-row">
+      <div class="hw-slider-header">
+        <span class="hw-slider-label">Memory</span>
+        <span class="hw-slider-val" id="hw-val-memory">${memGBstr}</span>
+      </div>
+      <input type="range" class="hw-range" data-field="memory"
+        min="256" max="32768" step="256" value="${state.prov.customMemory}">
+    </div>
+    <div class="hw-slider-row">
+      <div class="hw-slider-header">
+        <span class="hw-slider-label">Disk Size</span>
+        <span class="hw-slider-val" id="hw-val-disk">${diskGB} GB</span>
+      </div>
+      <input type="range" class="hw-range" data-field="disk"
+        min="1" max="500" step="1" value="${diskGB}">
+    </div>`;
+
+  const manual = `
+    <div class="form-row" style="margin-bottom:12px">
+      <div class="form-group" style="margin-bottom:0">
         <label class="form-label">CPU Cores</label>
-        <input class="form-input" type="number" id="f-cores" value="1" min="1">
+        <input class="form-input" type="number" id="prov-cores"
+          value="${state.prov.customCores}" min="1" max="32">
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:0">
         <label class="form-label">Memory (MiB)</label>
-        <input class="form-input" type="number" id="f-memory" value="1024" min="128" step="128">
+        <input class="form-input" type="number" id="prov-memory"
+          value="${state.prov.customMemory}" min="256" step="256">
       </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Disk Size</label>
-        <input class="form-input" type="text" id="f-disk-size" value="5G">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Disk (GB)</label>
+        <input class="form-input" type="number" id="prov-disk-num"
+          value="${diskGB}" min="1" max="500">
       </div>
-      <div class="form-group">
-        <label class="form-label">Disk Device</label>
-        <input class="form-input" type="text" id="f-disk-device" value="scsi0">
-      </div>
-    </div>
-    <div class="form-divider">${Icons.user} Access</div>
-    <div class="form-group">
-      <label class="form-label">Username</label>
-      <input class="form-input" type="text" id="f-user" value="debian">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Start VMID</label>
-      <input class="form-input" type="number" id="f-start-id" value="500" min="100">
-    </div>
-    <button type="button" class="btn btn-primary" id="btn-launch" data-action="submit-provision"
-      style="width:100%;justify-content:center;margin-top:10px"
-      ${isRunning ? 'disabled' : ''}>
-      ${isRunning
-        ? '<span class="spinner" style="border-top-color:#fff"></span> Provisioning…'
-        : Icons.bolt + ' Launch VMs'}
-    </button>
-  </form>`;
+    </div>`;
+
+  return header + (isSlider ? sliders : manual);
 }
 
-/* ── Provision Page ────────────────────────────────────────────────────── */
-function ProvisionPage() {
-  return `<section id="page-provision" class="page${state.page === 'provision' ? ' active' : ''}">
-    <div class="page-header">
-      <h2>Provision New VMs</h2>
+function initSliderFills() {
+  document.querySelectorAll('input.hw-range').forEach(el => {
+    const val = +el.value, min = +el.min, max = +el.max;
+    const pct = ((val - min) / (max - min) * 100).toFixed(1) + '%';
+    el.style.background = `linear-gradient(to right, var(--accent) ${pct}, var(--bg-3) ${pct})`;
+  });
+}
+
+function renderCustomFields() {
+  const wrap = document.getElementById('drawer-custom-fields');
+  if (!wrap) return;
+  const inner = wrap.querySelector('.dcx-inner') || wrap;
+  inner.innerHTML = customFieldsInnerHTML();
+  wrap.classList.toggle('open', state.prov.profile === 'custom');
+  if (state.prov.inputMode === 'slider') setTimeout(initSliderFills, 0);
+}
+
+const PROFILES = [
+  { id: 'small',  label: 'Small',  cores: 1, memory: 1024, disk: '10G',
+    specs: ['1 vCPU', '1 GB RAM', '10 GB disk'] },
+  { id: 'medium', label: 'Medium', cores: 2, memory: 2048, disk: '20G',
+    specs: ['2 vCPU', '2 GB RAM', '20 GB disk'] },
+  { id: 'large',  label: 'Large',  cores: 4, memory: 8192, disk: '40G',
+    specs: ['4 vCPU', '8 GB RAM', '40 GB disk'] },
+  { id: 'custom', label: 'Custom', cores: null, memory: null, disk: null,
+    specs: ['Configure manually'] },
+];
+
+function getProvisionParams() {
+  const tmpl = TEMPLATES.find(t => t.id === state.prov.template) || TEMPLATES[0];
+  const prof = PROFILES.find(p => p.id === state.prov.profile) || PROFILES[0];
+  const isCustom = state.prov.profile === 'custom';
+  return {
+    templateId: state.prov.templateIds[tmpl.id] ?? 9000,
+    vmCount:    state.prov.vmCount,
+    cores:      isCustom ? state.prov.customCores  : prof.cores,
+    memory:     isCustom ? state.prov.customMemory : prof.memory,
+    diskSize:   isCustom ? state.prov.customDisk   : prof.disk,
+    diskDevice: 'scsi0',
+    user:       tmpl.user,
+    vmStartId:  state.prov.vmStartId,
+  };
+}
+
+/* ── Provision Wizard ──────────────────────────────────────────────────── */
+function ProvisionWizard() {
+  const hasTmpl = !!state.prov.template;
+  const hasProf = !!state.prov.profile;
+  const isLaunching = !!(state.activeJobId && !state.jobDone);
+  const isCustom = state.prov.profile === 'custom';
+
+  /* ── Block 1: Operating System ─────────────────────────────────────── */
+  const tmplBlock = `
+  <div class="prov-block" id="prov-block-os">
+    <div class="prov-block-header">
+      <span class="prov-step-badge${hasTmpl ? ' done' : ' active'}"><span>1</span></span>
+      <span class="prov-block-title">Operating System</span>
+      ${hasTmpl ? `<span class="prov-block-chip">${TEMPLATES.find(t=>t.id===state.prov.template)?.label}</span>` : ''}
     </div>
-    <div class="provision-layout">
-      <div class="panel">
-        <h3>${Icons.settings} Configuration</h3>
-        ${ProvisionForm()}
+    <div class="template-grid">
+      ${TEMPLATES.map(t => {
+        const vmid = state.prov.templateIds[t.id] ?? 9000;
+        const sel  = state.prov.template === t.id ? ' selected' : '';
+        return `
+        <div class="template-card${sel}" data-action="select-template" data-template="${t.id}">
+          <div class="tc-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+              stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="tc-icon">${DISTRO_ICONS[t.id] || ''}</div>
+          <div class="tc-name">${t.label}</div>
+          <div class="tc-sub">${t.sub}</div>
+          <div class="tc-vmid">
+            <label>Template VMID</label>
+            <input type="number" class="prov-tmpl-vmid-input" data-tmpl="${t.id}"
+              value="${vmid}" onclick="event.stopPropagation()">
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  /* ── Block 2: Resource Profile ─────────────────────────────────────── */
+  const profLabel = PROFILES.find(p=>p.id===state.prov.profile)?.label || '';
+  const profileBlock = `
+  <div class="prov-block${!hasTmpl ? ' locked' : ''}" id="prov-block-profile">
+    <div class="prov-block-header">
+      <span class="prov-step-badge${hasProf ? ' done' : hasTmpl ? ' active' : ''}"><span>2</span></span>
+      <span class="prov-block-title">Instance Type</span>
+      ${hasProf ? `<span class="prov-block-chip">${profLabel}</span>` : ''}
+    </div>
+    <div class="profile-grid">
+      ${PROFILES.map(p => {
+        const sel = state.prov.profile === p.id ? ' selected' : '';
+        return `
+        <button class="profile-card${sel}" data-action="select-profile" data-profile="${p.id}">
+          <div class="pc-name">${p.label}</div>
+          <div class="pc-specs">${p.specs.map(s => `<span>${s}</span>`).join('')}</div>
+        </button>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  /* ── Block 3: Deployment ───────────────────────────────────────────── */
+  const deployBlock = `
+  <div class="prov-block${!hasProf ? ' locked' : ''}" id="prov-block-deploy">
+    <div class="prov-block-header">
+      <span class="prov-step-badge${hasProf ? ' active' : ''}"><span>3</span></span>
+      <span class="prov-block-title">Configuration</span>
+    </div>
+
+    <div class="custom-fields-wrap${isCustom ? ' open' : ''}" id="prov-custom-fields">
+      ${customFieldsInnerHTML()}
+    </div>
+
+    <div class="prov-section-label" style="margin-bottom:14px">Quantity</div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px">
+      <div class="count-stepper">
+        <button class="count-step-btn" data-action="prov-decrement"
+          ${state.prov.vmCount <= 1 ? 'disabled' : ''}>−</button>
+        <span class="count-value" id="prov-count-val">${state.prov.vmCount}</span>
+        <button class="count-step-btn" data-action="prov-increment"
+          ${state.prov.vmCount >= 20 ? 'disabled' : ''}>+</button>
       </div>
-      <div class="panel progress-panel">
-        <h3>${Icons.bolt} Pipeline</h3>
-        <div id="prov-content">${ProvisionPipeline()}</div>
+      <span style="font-size:0.82rem;color:var(--text-3)">VM${state.prov.vmCount !== 1 ? 's' : ''}</span>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btn btn-primary" id="btn-launch" data-action="submit-provision"
+        style="justify-content:center;min-width:140px" ${isLaunching ? 'disabled' : ''}>
+        ${isLaunching
+          ? '<span class="spinner" style="border-top-color:#fff"></span>&nbsp;Launching…'
+          : Icons.bolt + '&nbsp;Launch ' + (state.prov.vmCount > 1 ? state.prov.vmCount + ' VMs' : 'VM')}
+      </button>
+    </div>
+  </div>`;
+
+  return `<div class="prov-full">${tmplBlock}${profileBlock}${deployBlock}</div>`;
+}
+
+/* ── Provision Pipeline View ───────────────────────────────────────────── */
+function ProvisionPipelineView() {
+  const tmpl     = TEMPLATES.find(t => t.id === state.prov.template);
+  const prof     = PROFILES.find(p => p.id === state.prov.profile);
+  const params   = getProvisionParams();
+  const isCustom = state.prov.profile === 'custom';
+  const isDone   = state.prov.stage === 'done';
+
+  const profileSummary = isCustom
+    ? `${params.cores} vCPU · ${params.memory} MiB · ${params.diskSize}`
+    : (prof?.specs || []).join(' · ');
+
+  return `
+  <div class="prov-pipeline-view">
+    <div class="prov-pipeline-header">
+      ${tmpl ? `<span class="prov-config-pill"><strong>${tmpl.label}</strong></span>` : ''}
+      ${prof  ? `<span class="prov-config-pill"><strong>${prof.label}</strong> · ${profileSummary}</span>` : ''}
+      <span class="prov-config-pill">${state.prov.vmCount} VM${state.prov.vmCount !== 1 ? 's' : ''}</span>
+    </div>
+    <div id="prov-pipeline-content">${ProvisionPipeline()}</div>
+  </div>`;
+}
+
+/* ── Provision Wizard Re-renderer ──────────────────────────────────────── */
+function renderProvisionWizard() {
+  const drawerBody = document.querySelector('.drawer-body');
+  if (!drawerBody) { if (state.drawerOpen) render(); return; }
+  const showPipeline = state.prov.stage === 'running' || state.prov.stage === 'done';
+  const isLaunching  = !!(state.activeJobId && !state.jobDone);
+  const hasProf      = !!state.prov.profile;
+  const hasTmpl      = !!state.prov.template;
+  const canLaunch    = hasProf && hasTmpl && !isLaunching;
+  const vmCount      = state.prov.vmCount;
+
+  if (showPipeline) {
+    drawerBody.innerHTML = `<div class="drawer-pipeline" id="provision-content-area">${ProvisionPipelineView()}</div>`;
+  } else {
+    drawerBody.innerHTML = `<div id="provision-content-area">${DrawerWizardContent()}</div>`;
+    if (state.prov.profile === 'custom' && state.prov.inputMode === 'slider') setTimeout(initSliderFills, 0);
+  }
+  // Update footer
+  const ft = document.querySelector('.drawer-ft');
+  if (ft) {
+    if (showPipeline) {
+      ft.innerHTML = state.prov.stage === 'done'
+        ? `<button class="btn btn-ghost" data-action="drawer-close">Close</button>
+           <span class="spacer"></span>
+           <button class="btn btn-secondary btn-sm" data-action="prov-new">\u2190 Deploy Another</button>`
+        : `<span class="drawer-cost-est"><strong>${Object.keys(state.provVMs).length}</strong> VMs provisioning\u2026</span>
+           <span class="spacer"></span>
+           <button class="btn btn-ghost btn-sm" disabled>In Progress</button>`;
+    } else {
+      const launchLabel = isLaunching
+        ? '<span class="spinner" style="border-top-color:#fff"></span> Deploying\u2026'
+        : `${Icons.rocketLaunch} Deploy ${vmCount > 1 ? vmCount + ' VMs' : 'VM'}`;
+      ft.innerHTML = `<button class="btn btn-ghost" data-action="drawer-close">Cancel</button>
+        <span class="spacer"></span>
+        <button class="btn btn-primary" id="btn-launch" data-action="submit-provision"
+          ${canLaunch ? '' : 'disabled'} style="min-width:140px;justify-content:center">
+          ${launchLabel}
+        </button>`;
+    }
+  }
+}
+
+function _updateCountUI() {
+  const val = document.getElementById('prov-count-val');
+  const dec = document.querySelector('[data-action="prov-decrement"]');
+  const inc = document.querySelector('[data-action="prov-increment"]');
+  const btn = document.getElementById('btn-launch');
+  if (val) val.textContent = state.prov.vmCount;
+  if (dec) dec.disabled = state.prov.vmCount <= 1;
+  if (inc) inc.disabled = state.prov.vmCount >= 20;
+  if (btn && !btn.disabled) btn.innerHTML = Icons.rocketLaunch + ' Deploy ' + (state.prov.vmCount > 1 ? state.prov.vmCount + ' VMs' : 'VM');
+}
+
+/* ── Provision Page (legacy — kept for compatibility) ──────────────────── */
+function ProvisionPage() { return ''; }
+
+/* ── Drawer Wizard Content ─────────────────────────────────────────────── */
+function DrawerWizardContent() {
+  const hasTmpl = !!state.prov.template;
+  const hasProf = !!state.prov.profile;
+  const isCustom = state.prov.profile === 'custom';
+  const isLaunching = !!(state.activeJobId && !state.jobDone);
+
+  /* step badges */
+  function stepNum(n, done, active) {
+    const cls = done ? 'done' : active ? 'active' : '';
+    return `<span class="drawer-step-num${cls ? ' ' + cls : ''}">${done ? Icons.check : n}</span>`;
+  }
+
+  /* OS section */
+  const osSection = `
+  <div class="drawer-section" id="drawer-sec-os">
+    <div class="drawer-section-hd">
+      ${stepNum(1, hasTmpl, !hasTmpl)}
+      <span class="drawer-section-title">Operating System</span>
+      ${hasTmpl ? `<span class="drawer-section-chip">${TEMPLATES.find(t=>t.id===state.prov.template)?.label||''}</span>` : ''}
+    </div>
+    <div class="os-grid">
+      ${TEMPLATES.map(t => `
+      <button class="os-card${state.prov.template === t.id ? ' selected' : ''}"
+        data-action="drawer-select-template" data-template="${t.id}">
+        <div class="os-check">${Icons.check}</div>
+        <img class="os-img" src="https://cdn.simpleicons.org/${t.id === 'debian12' ? 'debian' : 'ubuntu'}"
+          alt="${t.label}" loading="lazy">
+        <div>
+          <div class="os-name">${t.label}</div>
+          <div class="os-ver">${t.sub}</div>
+        </div>
+      </button>`).join('')}
+    </div>
+    <div class="os-vmid-row">
+      ${TEMPLATES.map(t => {
+        const vmid = state.prov.templateIds[t.id] ?? 9000;
+        return `<div class="os-vmid-item">
+          <label>${t.label} VMID</label>
+          <input type="number" class="prov-tmpl-vmid-input" data-tmpl="${t.id}"
+            value="${vmid}" onclick="event.stopPropagation()">
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  /* Instance type section */
+  const INSTANCE_SIZES = [
+    { id: 'small',  label: 'Small',  cores: 1, memory: 1024, disk: '10G',
+      specs: ['1 vCPU', '1 GB', '10 GB'] },
+    { id: 'medium', label: 'Medium', cores: 2, memory: 2048, disk: '20G',
+      specs: ['2 vCPU', '2 GB', '20 GB'], popular: true },
+    { id: 'large',  label: 'Large',  cores: 4, memory: 8192, disk: '40G',
+      specs: ['4 vCPU', '8 GB', '40 GB'] },
+    { id: 'custom', label: 'Custom', cores: null, memory: null, disk: null,
+      specs: ['Configure below'] },
+  ];
+
+  const instanceSection = `
+  <div class="drawer-section${!hasTmpl ? ' locked' : ''}" id="drawer-sec-instance">
+    <div class="drawer-section-hd">
+      ${stepNum(2, hasProf, hasTmpl && !hasProf)}
+      <span class="drawer-section-title">Instance Type</span>
+      ${hasProf ? `<span class="drawer-section-chip">${PROFILES.find(p=>p.id===state.prov.profile)?.label||''}</span>` : ''}
+    </div>
+    <div class="instance-list">
+      ${INSTANCE_SIZES.map(s => `
+      <button class="instance-card${state.prov.profile === s.id ? ' selected' : ''}"
+        data-action="drawer-select-profile" data-profile="${s.id}">
+        <div class="instance-radio"></div>
+        <span class="instance-name">${s.label}</span>
+        <div class="instance-specs">
+          <span class="instance-spec">${Icons.cpu}${s.specs[0]}</span>
+          <span class="instance-spec">${Icons.memory}${s.specs[1]} RAM</span>
+          <span class="instance-spec">${Icons.disk}${s.specs[2]} disk</span>
+        </div>
+      </button>`).join('')}
+    </div>
+    <div class="drawer-custom-expand${isCustom ? ' open' : ''}" id="drawer-custom-fields">
+      <div class="dcx-inner" id="provision-content-area-custom">
+        ${customFieldsInnerHTML()}
       </div>
     </div>
-  </section>`;
+  </div>`;
+
+  /* Config section */
+  const configSection = `
+  <div class="drawer-section${!hasProf ? ' locked' : ''}" id="drawer-sec-config">
+    <div class="drawer-section-hd">
+      ${stepNum(3, false, hasProf)}
+      <span class="drawer-section-title">Configuration</span>
+    </div>
+    <div class="qty-row">
+      <div class="qty-label-grp">
+        <div class="qty-title">Quantity</div>
+        <div class="qty-sub">Number of VMs to provision</div>
+      </div>
+      <div class="qty-stepper">
+        <button class="qty-btn" data-action="prov-decrement" ${state.prov.vmCount <= 1 ? 'disabled' : ''}>−</button>
+        <span class="qty-val" id="prov-count-val">${state.prov.vmCount}</span>
+        <button class="qty-btn" data-action="prov-increment" ${state.prov.vmCount >= 20 ? 'disabled' : ''}>+</button>
+      </div>
+    </div>
+    <div class="start-vmid-row">
+      <label>Starting VMID</label>
+      <input type="number" id="prov-start-vmid" value="${state.prov.vmStartId}" min="100" max="9999">
+    </div>
+  </div>`;
+
+  return osSection + instanceSection + configSection;
+}
+
+/* ── Drawer ────────────────────────────────────────────────────────────── */
+function Drawer() {
+  if (!state.drawerOpen) return '';
+
+  const showPipeline = state.prov.stage === 'running' || state.prov.stage === 'done';
+  const isLaunching  = !!(state.activeJobId && !state.jobDone);
+  const hasProf  = !!state.prov.profile;
+  const hasTmpl  = !!state.prov.template;
+  const canLaunch = hasProf && hasTmpl && !isLaunching;
+
+  const vmCount = state.prov.vmCount;
+  const launchLabel = isLaunching
+    ? '<span class="spinner" style="border-top-color:#fff"></span> Deploying…'
+    : `${Icons.rocketLaunch} Deploy ${vmCount > 1 ? vmCount + ' VMs' : 'VM'}`;
+
+  const bodyContent = showPipeline
+    ? `<div class="drawer-pipeline" id="provision-content-area">${ProvisionPipelineView()}</div>`
+    : `<div id="provision-content-area">${DrawerWizardContent()}</div>`;
+
+  const footer = showPipeline
+    ? (state.prov.stage === 'done' ? `
+      <button class="btn btn-ghost" data-action="drawer-close">Close</button>
+      <span class="spacer"></span>
+      <button class="btn btn-secondary btn-sm" data-action="prov-new">← Deploy Another</button>` : `
+      <span class="drawer-cost-est"><strong>${Object.keys(state.provVMs).length}</strong> VMs provisioning…</span>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost btn-sm" disabled>In Progress</button>`)
+    : `
+      <button class="btn btn-ghost" data-action="drawer-close">Cancel</button>
+      <span class="spacer"></span>
+      <button class="btn btn-primary" id="btn-launch" data-action="submit-provision"
+        ${canLaunch ? '' : 'disabled'} style="min-width:140px;justify-content:center">
+        ${launchLabel}
+      </button>`;
+
+  return `
+  <div class="drawer-backdrop" data-action="backdrop-click"></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-label="Deploy Virtual Machine">
+    <div class="drawer-hd">
+      <div class="drawer-hd-left">
+        <div class="drawer-hd-icon">${Icons.rocketLaunch}</div>
+        <div>
+          <div class="drawer-title">Deploy Virtual Machine</div>
+          <div class="drawer-subtitle">Configure and launch new instances</div>
+        </div>
+      </div>
+      <button class="drawer-close tip" data-tip="Close" data-action="drawer-close">${Icons.x}</button>
+    </div>
+    <div class="drawer-body">${bodyContent}</div>
+    <div class="drawer-ft">${footer}</div>
+  </aside>`;
 }
 
 /* ── Header ────────────────────────────────────────────────────────────── */
 function Header() {
   const connected = !!state.config.proxmoxUrl;
   const connClass = connected ? '' : ' disconnected';
-  const connText = connected
-    ? `${state.config.proxmoxUrl} / ${state.config.node || ''}`
-    : 'Disconnected';
 
   return `<header class="header">
     <div class="header-brand">
       ${Icons.layers}
       Atlas Plane
+      <span class="header-brand-dot"></span>
     </div>
     <nav class="header-nav">
-      <button class="nav-tab${state.page === 'vms' ? ' active' : ''}" data-action="switch-page" data-page="vms">Virtual Machines</button>
-      <button class="nav-tab${state.page === 'provision' ? ' active' : ''}" data-action="switch-page" data-page="provision">Provision</button>
+      <button class="nav-tab active" data-action="switch-page" data-page="vms">Virtual Machines</button>
     </nav>
     <div class="header-right">
       <div class="header-status${connClass}">
         <span class="header-status-dot"></span>
-        <span>${esc(connText)}</span>
+        <span>${connected ? esc(state.config.node || 'Connected') : 'Disconnected'}</span>
       </div>
     </div>
   </header>`;
@@ -1343,11 +2274,14 @@ function Header() {
 
 /* ── App Root ──────────────────────────────────────────────────────────── */
 function App() {
-  return `${Header()}
-  <main class="main">
-    ${VMsPage()}
-    ${ProvisionPage()}
-  </main>`;
+  const blurClass = state.drawerOpen ? ' layout-blur' : '';
+  return `<div class="app-root${blurClass}" id="layout-root">
+    ${Header()}
+    <main class="main">
+      ${VMsPage()}
+    </main>
+  </div>
+  ${Drawer()}`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1404,7 +2338,7 @@ function renderVMGrid() {
 }
 
 function renderProvisionProgress() {
-  const panel = document.getElementById('prov-content');
+  const panel = document.getElementById('prov-pipeline-content');
   if (panel) panel.innerHTML = ProvisionPipeline();
 }
 
@@ -1426,6 +2360,71 @@ document.addEventListener('click', async (e) => {
     case 'switch-page':
       switchPage(el.dataset.page);
       break;
+
+    case 'open-drawer':
+      openDrawer();
+      break;
+
+    case 'drawer-close':
+      closeDrawer();
+      break;
+
+    case 'backdrop-click':
+      if (e.target === el) closeDrawer();
+      break;
+
+    case 'drawer-select-template': {
+      state.prov.template = el.dataset.template;
+      document.querySelectorAll('.os-card').forEach(c =>
+        c.classList.toggle('selected', c.dataset.template === state.prov.template));
+      const secOS = document.getElementById('drawer-sec-os');
+      const numOS = secOS?.querySelector('.drawer-step-num');
+      if (numOS) { numOS.className = 'drawer-step-num done'; numOS.innerHTML = Icons.check; }
+      // Show/update chip
+      const tmplObj = TEMPLATES.find(t => t.id === state.prov.template);
+      const hdOS = secOS?.querySelector('.drawer-section-hd');
+      let chipOS = hdOS?.querySelector('.drawer-section-chip');
+      if (!chipOS && hdOS) { chipOS = document.createElement('span'); chipOS.className = 'drawer-section-chip'; hdOS.appendChild(chipOS); }
+      if (chipOS && tmplObj) chipOS.textContent = tmplObj.label;
+      // Unlock instance section
+      const secInst = document.getElementById('drawer-sec-instance');
+      if (secInst) secInst.classList.remove('locked');
+      const numInst = secInst?.querySelector('.drawer-step-num');
+      if (numInst && !numInst.classList.contains('done')) numInst.classList.add('active');
+      // Enable launch if ready
+      const lb = document.getElementById('btn-launch');
+      if (lb && state.prov.profile) lb.disabled = false;
+      break;
+    }
+
+    case 'drawer-select-profile': {
+      state.prov.profile = el.dataset.profile;
+      document.querySelectorAll('.instance-card').forEach(c =>
+        c.classList.toggle('selected', c.dataset.profile === state.prov.profile));
+      const secInst = document.getElementById('drawer-sec-instance');
+      const numInst = secInst?.querySelector('.drawer-step-num');
+      if (numInst) { numInst.className = 'drawer-step-num done'; numInst.innerHTML = Icons.check; }
+      // Show/update chip
+      const profObj = PROFILES.find(p => p.id === state.prov.profile);
+      const hdInst = secInst?.querySelector('.drawer-section-hd');
+      let chipInst = hdInst?.querySelector('.drawer-section-chip');
+      if (!chipInst && hdInst) { chipInst = document.createElement('span'); chipInst.className = 'drawer-section-chip'; hdInst.appendChild(chipInst); }
+      if (chipInst && profObj) chipInst.textContent = profObj.label;
+      // Unlock config section
+      const secCfg = document.getElementById('drawer-sec-config');
+      if (secCfg) secCfg.classList.remove('locked');
+      const numCfg = secCfg?.querySelector('.drawer-step-num');
+      if (numCfg && !numCfg.classList.contains('done')) numCfg.classList.add('active');
+      // Custom expand
+      renderCustomFields();
+      // Enable launch button if template also selected
+      const lb2 = document.getElementById('btn-launch');
+      if (lb2 && state.prov.template) {
+        lb2.disabled = false;
+        lb2.innerHTML = Icons.rocketLaunch + ' Deploy ' + (state.prov.vmCount > 1 ? state.prov.vmCount + ' VMs' : 'VM');
+      }
+      break;
+    }
 
     case 'refresh-vms':
       el.disabled = true;
@@ -1470,6 +2469,97 @@ document.addEventListener('click', async (e) => {
       await submitProvision();
       break;
 
+    case 'select-template': {
+      state.prov.template = el.dataset.template;
+      // Highlight selected card
+      document.querySelectorAll('.template-card').forEach(c =>
+        c.classList.toggle('selected', c.dataset.template === state.prov.template));
+      // Unlock profile block
+      const pb = document.getElementById('prov-block-profile');
+      if (pb) pb.classList.remove('locked');
+      // Update step badge
+      const b1 = document.querySelector('#prov-block-os .prov-step-badge');
+      if (b1) { b1.className = 'prov-step-badge done'; }
+      // Update header chip
+      const tmplObj = TEMPLATES.find(t => t.id === state.prov.template);
+      let chip1 = document.querySelector('#prov-block-os .prov-block-chip');
+      if (!chip1) {
+        chip1 = document.createElement('span');
+        chip1.className = 'prov-block-chip';
+        document.querySelector('#prov-block-os .prov-block-header').appendChild(chip1);
+      }
+      if (tmplObj) chip1.textContent = tmplObj.label;
+      // Update profile block badge to active
+      const b2 = document.querySelector('#prov-block-profile .prov-step-badge');
+      if (b2) { b2.className = 'prov-step-badge active'; }
+      break;
+    }
+
+    case 'select-profile': {
+      state.prov.profile = el.dataset.profile;
+      // Highlight selected card
+      document.querySelectorAll('.profile-card').forEach(c =>
+        c.classList.toggle('selected', c.dataset.profile === state.prov.profile));
+      // Unlock deploy block
+      const db = document.getElementById('prov-block-deploy');
+      if (db) db.classList.remove('locked');
+      // Update step badge
+      const b2p = document.querySelector('#prov-block-profile .prov-step-badge');
+      if (b2p) { b2p.className = 'prov-step-badge done'; }
+      // Update header chip
+      const profObj = PROFILES.find(p => p.id === state.prov.profile);
+      let chip2 = document.querySelector('#prov-block-profile .prov-block-chip');
+      if (!chip2) {
+        chip2 = document.createElement('span');
+        chip2.className = 'prov-block-chip';
+        document.querySelector('#prov-block-profile .prov-block-header').appendChild(chip2);
+      }
+      if (profObj) chip2.textContent = profObj.label;
+      // Update deploy block badge
+      const b3 = document.querySelector('#prov-block-deploy .prov-step-badge');
+      if (b3) { b3.className = 'prov-step-badge active'; }
+      // Toggle/re-render custom hardware fields
+      renderCustomFields();
+      // Update launch button text
+      const lb = document.getElementById('btn-launch');
+      if (lb && !lb.disabled) lb.innerHTML = Icons.bolt + '&nbsp;Launch ' + (state.prov.vmCount > 1 ? state.prov.vmCount + ' VMs' : 'VM');
+      break;
+    }
+
+    case 'set-input-mode':
+      state.prov.inputMode = el.dataset.mode;
+      renderCustomFields();
+      break;
+
+    case 'prov-increment':
+      if (state.prov.vmCount < 20) {
+        state.prov.vmCount++;
+        _updateCountUI();
+      }
+      break;
+
+    case 'prov-decrement':
+      if (state.prov.vmCount > 1) {
+        state.prov.vmCount--;
+        _updateCountUI();
+      }
+      break;
+
+    case 'prov-new':
+      if (state.activeEventSource) state.activeEventSource.close();
+      stopJobTimer();
+      state.prov.stage    = 'template';
+      state.prov.template = null;
+      state.prov.profile  = null;
+      state.prov.vmCount  = 1;
+      state.activeJobId   = null;
+      state.provVMs       = {};
+      state.jobDone       = false;
+      state.jobEndedAt    = null;
+      state.jobStartedAt  = null;
+      renderProvisionWizard();
+      break;
+
     case 'toggle-sort-dir':
       state.filters.sortDir = state.filters.sortDir === 'asc' ? 'desc' : 'asc';
       renderVMGrid();
@@ -1504,6 +2594,15 @@ document.addEventListener('change', (e) => {
     state.filters.sort = e.target.value;
     renderVMGrid();
   }
+  // Persist provision wizard input changes to state
+  if (e.target.classList.contains('prov-tmpl-vmid-input')) {
+    const tmpl = e.target.dataset.tmpl;
+    const val  = parseInt(e.target.value);
+    if (tmpl && !isNaN(val)) state.prov.templateIds[tmpl] = val;
+  }
+  if (e.target.id === 'prov-cores')   { const v = +e.target.value; if (v > 0) state.prov.customCores  = v; }
+  if (e.target.id === 'prov-memory')  { const v = +e.target.value; if (v > 0) state.prov.customMemory = v; }
+  if (e.target.id === 'prov-disk-num'){ const v = +e.target.value; if (v > 0) state.prov.customDisk   = v + 'G'; }
 });
 
 document.addEventListener('input', (e) => {
@@ -1511,6 +2610,46 @@ document.addEventListener('input', (e) => {
     state.filters.search = e.target.value;
     renderVMGrid();
   }
+  // Template VMID overrides
+  if (e.target.classList.contains('prov-tmpl-vmid-input')) {
+    const tmpl = e.target.dataset.tmpl;
+    const val  = +e.target.value;
+    if (val > 0) state.prov.templateIds[tmpl] = val;
+  }
+  // Custom profile — number inputs
+  if (e.target.id === 'prov-cores')   { const v = +e.target.value; if (v > 0) state.prov.customCores  = v; }
+  if (e.target.id === 'prov-memory')  { const v = +e.target.value; if (v > 0) state.prov.customMemory = v; }
+  if (e.target.id === 'prov-disk-num'){ const v = +e.target.value; if (v > 0) state.prov.customDisk   = v + 'G'; }
+  // Custom profile — sliders
+  if (e.target.classList && e.target.classList.contains('hw-range')) {
+    const field = e.target.dataset.field;
+    const val   = +e.target.value;
+    const min   = +e.target.min, max = +e.target.max;
+    const pct   = ((val - min) / (max - min) * 100).toFixed(1) + '%';
+    e.target.style.background = `linear-gradient(to right, var(--accent) ${pct}, var(--bg-3) ${pct})`;
+    if (field === 'cores') {
+      state.prov.customCores = val;
+      const lbl = document.getElementById('hw-val-cores');
+      if (lbl) lbl.textContent = val + ' vCPU';
+    } else if (field === 'memory') {
+      state.prov.customMemory = val;
+      const lbl = document.getElementById('hw-val-memory');
+      if (lbl) lbl.textContent = val >= 1024 ? (val/1024).toFixed(1).replace(/\.0$/,'') + ' GB' : val + ' MiB';
+    } else if (field === 'disk') {
+      state.prov.customDisk = val + 'G';
+      const lbl = document.getElementById('hw-val-disk');
+      if (lbl) lbl.textContent = val + ' GB';
+    }
+  }
+  // Start VMID
+  if (e.target.id === 'prov-start-vmid') {
+    const v = +e.target.value;
+    if (v >= 100) state.prov.vmStartId = v;
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.drawerOpen) closeDrawer();
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1518,6 +2657,7 @@ document.addEventListener('input', (e) => {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function switchPage(page) {
+  if (page === 'provision') { openDrawer(); return; }
   if (state.page === page) return;
   state.page = page;
   render();
@@ -1585,40 +2725,45 @@ async function loadVMs() {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 async function submitProvision() {
+  // Capture any in-flight custom field values before re-rendering
+  if (state.prov.profile === 'custom') {
+    const coresEl  = document.getElementById('prov-cores');
+    const memEl    = document.getElementById('prov-memory');
+    const diskEl   = document.getElementById('prov-disk');
+    if (coresEl)  state.prov.customCores   = +coresEl.value  || state.prov.customCores;
+    if (memEl)    state.prov.customMemory  = +memEl.value    || state.prov.customMemory;
+    if (diskEl)   state.prov.customDisk    = diskEl.value    || state.prov.customDisk;
+  }
+
+  const params = getProvisionParams();
+
   const btn = document.getElementById('btn-launch');
-  if (!btn || btn.disabled) return;
-
-  const params = {
-    templateId: +(document.getElementById('f-template')?.value || 9000),
-    vmCount: +(document.getElementById('f-count')?.value || 1),
-    cores: +(document.getElementById('f-cores')?.value || 1),
-    memory: +(document.getElementById('f-memory')?.value || 1024),
-    diskSize: document.getElementById('f-disk-size')?.value || '5G',
-    diskDevice: document.getElementById('f-disk-device')?.value || 'scsi0',
-    user: document.getElementById('f-user')?.value || 'debian',
-    vmStartId: +(document.getElementById('f-start-id')?.value || 500),
-  };
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner" style="border-top-color:#fff"></span> Launching…';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="border-top-color:#fff"></span>&nbsp;Launching…';
+  }
 
   try {
     const resp = await api('POST', '/provision', params);
-    state.activeJobId = resp.jobId;
-    state.provVMs = {};
-    state.jobDone = false;
-    state.jobEndedAt = null;
+    state.activeJobId  = resp.jobId;
+    state.provVMs      = {};
+    state.jobDone      = false;
+    state.jobEndedAt   = null;
+    state.jobStartedAt = Date.now();
     (resp.specs || []).forEach(s => {
       state.provVMs[s.VMID] = { name: s.Name, step: null, ip: null, keyFile: null, error: null, message: null };
     });
-    state.jobStartedAt = Date.now();
-    renderProvisionProgress();
+    state.prov.stage = 'running';
+    renderProvisionWizard();   // switch to pipeline view
     connectSSE(resp.jobId);
     startJobTimer();
   } catch (err) {
     toast('Provision failed: ' + err.message, 'error');
-    btn.disabled = false;
-    btn.innerHTML = Icons.bolt + ' Launch VMs';
+    if (btn) {
+      btn.disabled = false;
+      const count = state.prov.vmCount;
+      btn.innerHTML = Icons.rocketLaunch + ' Deploy ' + (count > 1 ? count + ' VMs' : 'VM');
+    }
   }
 }
 
@@ -1632,17 +2777,12 @@ function connectSSE(jobId) {
     if (ev.step === 'job_complete') {
       state.activeEventSource.close();
       state.activeEventSource = null;
-      state.jobDone = true;
-      state.jobEndedAt = Date.now();
+      state.jobDone      = true;
+      state.jobEndedAt   = Date.now();
+      state.prov.stage   = 'done';
       stopJobTimer();
-      renderProvisionProgress();
-
-      const btn = document.getElementById('btn-launch');
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = Icons.bolt + ' Launch VMs';
-      }
-
+      renderProvisionWizard();   // re-render page with 'Provision Another' button
+      renderProvisionProgress(); // update pipeline cards to final state
       toast(ev.message, ev.message.includes('0 failed') ? 'success' : 'error');
       loadVMs();
       return;
@@ -1685,17 +2825,10 @@ async function loadConfig() {
   try {
     const cfg = await api('GET', '/config');
     state.config = cfg;
-    // Pre-fill form fields
+    // Pre-populate provision wizard defaults from server config
+    if (cfg.templateId) state.prov.templateIds.debian12 = +cfg.templateId;
+    if (cfg.vmStartId)  state.prov.vmStartId = +cfg.vmStartId;
     render();
-    setTimeout(() => {
-      if (cfg.templateId) setVal('f-template', cfg.templateId);
-      if (cfg.cores) setVal('f-cores', cfg.cores);
-      if (cfg.memory) setVal('f-memory', cfg.memory);
-      if (cfg.diskSize) setVal('f-disk-size', cfg.diskSize);
-      if (cfg.diskDevice) setVal('f-disk-device', cfg.diskDevice);
-      if (cfg.user) setVal('f-user', cfg.user);
-      if (cfg.vmStartId) setVal('f-start-id', cfg.vmStartId);
-    }, 0);
   } catch (e) {
     state.config = {};
     render();
