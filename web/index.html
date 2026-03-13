@@ -679,6 +679,53 @@ code { font-family: var(--mono); font-size: 0.9em; }
   font-size: 0.8rem;
 }
 
+/* ═══ Select All Checkbox ════════════════════════════════════════════════ */
+.select-all-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select-all-wrapper .vm-checkbox {
+  width: 16px;
+  height: 16px;
+}
+
+.select-all-wrapper .vm-checkbox svg {
+  width: 10px;
+  height: 10px;
+}
+
+.select-all-label {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--text-3);
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--duration) var(--ease);
+}
+
+.select-all-wrapper:hover .select-all-label {
+  color: var(--text-2);
+}
+
+.vm-checkbox.partial {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+}
+
+.vm-checkbox.partial::after {
+  content: '';
+  width: 8px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+}
+
+.vm-checkbox.partial svg {
+  display: none;
+}
+
 /* ═══ Empty State ════════════════════════════════════════════════════════ */
 .empty-state {
   text-align: center; padding: 80px 24px; color: var(--text-3);
@@ -1932,7 +1979,22 @@ function FilterBar() {
     return `<button class="segment-btn${active ? ' active' : ''}" data-action="segment" data-group="${group}" data-value="${value}">${label}</button>`;
   }
 
+  // Calculate select-all state based on filtered VMs
+  const filteredVMs = getFilteredVMs().filter(vm => vm.template !== 1);
+  const selectableCount = filteredVMs.length;
+  const selectedCount = filteredVMs.filter(vm => state.selectedVMs.has(vm.vmid)).length;
+  const allSelected = selectableCount > 0 && selectedCount === selectableCount;
+  const someSelected = selectedCount > 0 && selectedCount < selectableCount;
+  const checkboxClass = allSelected ? 'checked' : someSelected ? 'partial' : '';
+
   return `<div class="filter-bar">
+    <div class="select-all-wrapper" data-action="select-all">
+      <div class="vm-checkbox ${checkboxClass}">${Icons.check}</div>
+      <span class="select-all-label">${allSelected ? 'Deselect All' : 'Select All'}${selectableCount > 0 ? ` (${selectableCount})` : ''}</span>
+    </div>
+
+    <div class="filter-divider"></div>
+
     <div class="search-wrapper">
       <input class="search-input" type="text" id="search-input" placeholder="Search VMs…" value="${esc(search)}">
       ${Icons.search}
@@ -2848,6 +2910,23 @@ document.addEventListener('click', async (e) => {
       updateBulkActionBar();
       break;
 
+    case 'select-all': {
+      const filteredVMs = getFilteredVMs().filter(vm => vm.template !== 1);
+      const allSelected = filteredVMs.every(vm => state.selectedVMs.has(vm.vmid));
+      
+      if (allSelected) {
+        // Deselect all filtered VMs
+        filteredVMs.forEach(vm => state.selectedVMs.delete(vm.vmid));
+      } else {
+        // Select all filtered VMs
+        filteredVMs.forEach(vm => state.selectedVMs.add(vm.vmid));
+      }
+      
+      renderVMGrid();
+      updateBulkActionBar();
+      break;
+    }
+
     case 'bulk-start':
     case 'bulk-stop':
     case 'bulk-restart':
@@ -2864,11 +2943,11 @@ document.addEventListener('click', async (e) => {
         if (!confirmed) break;
       }
       
-      // Execute action for each VM
+      // Execute action for each VM (skip individual confirmations for bulk operations)
       for (const vmid of vmids) {
         const vm = state.vms.find(v => v.vmid === vmid);
         if (vm) {
-          await handleVMAction(act, vmid, vm.name);
+          await handleVMAction(act, vmid, vm.name, true);
         }
       }
       
@@ -3112,8 +3191,8 @@ function switchPage(page) {
    VM Actions
    ═══════════════════════════════════════════════════════════════════════════ */
 
-async function handleVMAction(action, vmid, name) {
-  if (action === 'delete') {
+async function handleVMAction(action, vmid, name, skipConfirm = false) {
+  if (action === 'delete' && !skipConfirm) {
     const yes = await showConfirm('Delete VM',
       `Permanently destroy <strong>${esc(name || '')}</strong> (VMID ${vmid})?<br>This action cannot be undone.`);
     if (!yes) return;
