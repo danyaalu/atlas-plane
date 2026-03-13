@@ -350,13 +350,24 @@ code { font-family: var(--mono); font-size: 0.9em; }
   transform: translateY(-1px);
 }
 .vm-card:hover::before { opacity: 1; }
+.vm-card.selected {
+  border-color: var(--accent-border);
+  background: linear-gradient(145deg, rgba(79,142,247,0.06) 0%, var(--bg-2) 100%);
+  box-shadow: 0 0 0 2px rgba(79,142,247,0.15);
+}
 .vm-card:focus-within {
   border-color: var(--accent-border);
   box-shadow: 0 0 0 2px var(--accent-bg);
 }
 .vm-card-head {
   display: flex; justify-content: space-between; align-items: flex-start;
-  margin-bottom: 14px;
+  margin-bottom: 14px; gap: 12px;
+}
+.vm-card-head-left {
+  display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0;
+}
+.vm-card-info {
+  flex: 1; min-width: 0;
 }
 .vm-card-name {
   font-weight: 600; font-size: 0.9rem; color: var(--text);
@@ -427,6 +438,245 @@ code { font-family: var(--mono); font-size: 0.9em; }
   content: 'TEMPLATE'; position: absolute; top: 12px; right: -30px;
   background: var(--bg-5); color: var(--text-3); font-size: 0.55rem; font-weight: 700;
   padding: 2px 36px; transform: rotate(45deg); letter-spacing: 0.08em;
+}
+
+/* ═══ VM List View ═══════════════════════════════════════════════════════ */
+.vm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vm-list-item {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  display: grid;
+  grid-template-columns: auto auto minmax(240px, 1fr) 200px 200px auto;
+  gap: 20px;
+  align-items: center;
+  transition: all 0.25s var(--ease);
+  animation: cardEnter 0.35s var(--ease) both;
+}
+
+.vm-list-item:hover {
+  border-color: var(--border-light);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  transform: translateX(2px);
+}
+
+.vm-list-item.template { opacity: 0.5; }
+
+.vm-list-item.selected {
+  border-color: var(--accent-border);
+  background: linear-gradient(90deg, rgba(79,142,247,0.06) 0%, var(--bg-2) 100%);
+  box-shadow: 0 0 0 2px rgba(79,142,247,0.15);
+}
+
+.vm-list-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.vm-list-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vm-list-item-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vm-list-item-id {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.vm-list-item-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.vm-list-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vm-list-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  min-width: 32px;
+}
+
+.vm-list-usage-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-4);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 90px;
+}
+
+.vm-list-stat-value {
+  font-size: 0.75rem;
+  color: var(--text-2);
+  font-family: var(--mono);
+  min-width: 38px;
+  text-align: right;
+}
+
+.vm-list-item-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.vm-list-item-actions .btn-icon { width: 36px; height: 36px; }
+.vm-list-item-actions .btn-icon svg { width: 16px; height: 16px; }
+
+/* View mode toggle */
+.view-toggle {
+  display: inline-flex;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px;
+  gap: 2px;
+}
+
+.view-toggle-btn {
+  padding: 5px 10px;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: var(--text-3);
+  transition: all var(--duration) var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-toggle-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.view-toggle-btn:hover:not(.active) {
+  color: var(--text-2);
+  background: rgba(255,255,255,0.04);
+}
+
+.view-toggle-btn.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* ═══ VM Selection & Bulk Actions ════════════════════════════════════════ */
+.vm-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-active);
+  border-radius: 4px;
+  background: var(--bg-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration) var(--ease);
+  flex-shrink: 0;
+}
+
+.vm-checkbox:hover {
+  border-color: var(--accent-border);
+  background: var(--bg-2);
+}
+
+.vm-checkbox.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.vm-checkbox svg {
+  width: 12px;
+  height: 12px;
+  color: #fff;
+  opacity: 0;
+  transition: opacity var(--duration) var(--ease);
+}
+
+.vm-checkbox.checked svg {
+  opacity: 1;
+}
+
+.bulk-action-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--bg-2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 14px 20px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 1000;
+  transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bulk-action-bar.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+.bulk-action-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+}
+
+.bulk-action-count {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bulk-action-count strong {
+  color: var(--accent);
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.bulk-action-bar .btn {
+  padding: 6px 14px;
+  font-size: 0.8rem;
 }
 
 /* ═══ Empty State ════════════════════════════════════════════════════════ */
@@ -1257,6 +1507,8 @@ const Icons = {
   x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
   check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
   rocketLaunch: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2m2-6-3 3"/><path d="M20 4a2 2 0 0 0-2-2S9 3 4 12l8 8c9-5 10-14 10-14z"/><circle cx="11.5" cy="12.5" r="1.5"/></svg>`,
+  grid: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
+  list: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
 };
 
 /* ── Constants ─────────────────────────────────────────────────────────── */
@@ -1278,6 +1530,8 @@ const state = {
   vms: [],
   vmsLoading: true,
   config: {},
+  viewMode: 'grid', // 'grid' | 'list'
+  selectedVMs: new Set(), // Set of selected VMIDs
   filters: {
     search: '',
     node: 'all',
@@ -1522,6 +1776,7 @@ function VMCard(vm, idx) {
   const nodeStr = esc(vm.node || '—');
   const loadingAction = state.loadingActions[vm.vmid];
   const delay = Math.min(idx * 0.03, 0.5);
+  const isSelected = state.selectedVMs.has(vm.vmid);
 
   let actions = '';
   if (!isTemplate) {
@@ -1553,11 +1808,14 @@ function VMCard(vm, idx) {
     }
   }
 
-  return `<div class="vm-card${isTemplate ? ' template' : ''}" style="animation-delay:${delay}s">
+  return `<div class="vm-card${isTemplate ? ' template' : ''}${isSelected ? ' selected' : ''}" style="animation-delay:${delay}s">
     <div class="vm-card-head">
-      <div>
-        <div class="vm-card-name">${esc(vm.name || 'unnamed')}</div>
-        <div class="vm-card-id">VMID ${vm.vmid}</div>
+      <div class="vm-card-head-left">
+        ${!isTemplate ? `<div class="vm-checkbox${isSelected ? ' checked' : ''}" data-action="toggle-vm" data-vmid="${vm.vmid}">${Icons.check}</div>` : ''}
+        <div class="vm-card-info">
+          <div class="vm-card-name">${esc(vm.name || 'unnamed')}</div>
+          <div class="vm-card-id">VMID ${vm.vmid}</div>
+        </div>
       </div>
       ${StatusBadge(vm.status)}
     </div>
@@ -1580,6 +1838,87 @@ function VMCard(vm, idx) {
       </div>
     </div>` : ''}
     ${actions ? `<div class="vm-card-actions">${actions}</div>` : ''}
+  </div>`;
+}
+
+/* ── VM List Item ──────────────────────────────────────────────────────── */
+function VMListItem(vm, idx) {
+  const isTemplate = vm.template === 1;
+  const isRunning = vm.status === 'running';
+  const cPct = cpuPercent(vm);
+  const mPct = memPercent(vm);
+  const memUsed = vm.mem ? formatBytes(vm.mem) : '—';
+  const memTotal = vm.maxmem ? formatBytes(vm.maxmem) : '—';
+  const uptime = isRunning && vm.uptime ? formatUptime(vm.uptime) : null;
+  const nodeStr = esc(vm.node || '—');
+  const loadingAction = state.loadingActions[vm.vmid];
+  const delay = Math.min(idx * 0.02, 0.4);
+  const isSelected = state.selectedVMs.has(vm.vmid);
+
+  let actions = '';
+  if (!isTemplate) {
+    const disableAll = !!loadingAction;
+    if (isRunning) {
+      actions = `
+        <button class="btn-icon tip success" data-tip="Stop" data-action="vm-stop" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
+          ${loadingAction === 'stop' ? '<span class="spinner"></span>' : Icons.stop}
+        </button>
+        <button class="btn-icon tip" data-tip="Restart" data-action="vm-restart" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
+          ${loadingAction === 'restart' ? '<span class="spinner"></span>' : Icons.restart}
+        </button>
+        <button class="btn-icon tip" data-tip="Console" data-action="vm-console" data-vmid="${vm.vmid}" data-node="${nodeStr}">
+          ${Icons.terminal}
+        </button>
+        <button class="btn-icon danger tip" data-tip="Delete" disabled>
+          ${Icons.trash}
+        </button>`;
+    } else {
+      actions = `
+        <button class="btn-icon tip success" data-tip="Start" data-action="vm-start" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
+          ${loadingAction === 'start' ? '<span class="spinner"></span>' : Icons.play}
+        </button>
+        <button class="btn-icon danger tip" data-tip="Delete" data-action="vm-delete" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
+          ${loadingAction === 'delete' ? '<span class="spinner"></span>' : Icons.trash}
+        </button>`;
+    }
+  }
+
+  const cpuStatHtml = isRunning ? `
+    <div class="vm-list-stat">
+      <div class="vm-list-stat-label">CPU</div>
+      <div class="vm-list-usage-bar">
+        <div class="usage-fill ${usageLevel(cPct)}" style="width:${cPct}%"></div>
+      </div>
+      <span class="vm-list-stat-value">${cPct}%</span>
+    </div>` : '<div></div>';
+
+  const memStatHtml = isRunning ? `
+    <div class="vm-list-stat">
+      <div class="vm-list-stat-label">MEM</div>
+      <div class="vm-list-usage-bar">
+        <div class="usage-fill ${usageLevel(mPct)}" style="width:${mPct}%"></div>
+      </div>
+      <span class="vm-list-stat-value">${mPct}%</span>
+    </div>` : '<div></div>';
+
+  return `<div class="vm-list-item${isTemplate ? ' template' : ''}${isSelected ? ' selected' : ''}" style="animation-delay:${delay}s">
+    ${!isTemplate ? `<div class="vm-checkbox${isSelected ? ' checked' : ''}" data-action="toggle-vm" data-vmid="${vm.vmid}">${Icons.check}</div>` : '<div></div>'}
+    ${StatusBadge(vm.status)}
+    <div class="vm-list-item-info">
+      <div class="vm-list-item-header">
+        <div class="vm-list-item-name">${esc(vm.name || 'unnamed')}</div>
+        <div class="vm-list-item-id">VMID ${vm.vmid}</div>
+      </div>
+      <div class="vm-list-item-meta">
+        <span class="meta-chip">${Icons.server} ${nodeStr}</span>
+        <span class="meta-chip">${Icons.cpu} ${vm.maxcpu || '—'} vCPU</span>
+        <span class="meta-chip">${Icons.memory} ${vm.maxmem ? formatBytes(vm.maxmem) : '—'}</span>
+        ${uptime ? `<span class="meta-chip">${Icons.clock} ${uptime}</span>` : ''}
+      </div>
+    </div>
+    ${cpuStatHtml}
+    ${memStatHtml}
+    ${actions ? `<div class="vm-list-item-actions">${actions}</div>` : ''}
   </div>`;
 }
 
@@ -1642,6 +1981,25 @@ function FilterBar() {
   </div>`;
 }
 
+/* ── Bulk Action Bar ───────────────────────────────────────────────────── */
+function BulkActionBar() {
+  const count = state.selectedVMs.size;
+  const visible = count > 0;
+  
+  return `<div class="bulk-action-bar${visible ? ' visible' : ''}">
+    <div class="bulk-action-info">
+      <div class="bulk-action-count"><strong>${count}</strong> VM${count !== 1 ? 's' : ''} selected</div>
+    </div>
+    <div class="bulk-actions">
+      <button class="btn btn-ghost btn-sm" data-action="bulk-start">${Icons.play} Start</button>
+      <button class="btn btn-ghost btn-sm" data-action="bulk-stop">${Icons.stop} Stop</button>
+      <button class="btn btn-ghost btn-sm" data-action="bulk-restart">${Icons.restart} Restart</button>
+      <button class="btn btn-danger btn-sm" data-action="bulk-delete">${Icons.trash} Delete</button>
+    </div>
+    <button class="btn btn-ghost btn-sm" data-action="clear-selection">${Icons.x}</button>
+  </div>`;
+}
+
 /* ── VMs Page ──────────────────────────────────────────────────────────── */
 function VMsPage() {
   const vms = getFilteredVMs();
@@ -1673,7 +2031,9 @@ function VMsPage() {
       <button class="btn btn-secondary" data-action="clear-filters">Clear Filters</button>
     </div>`;
   } else {
-    content = `<div class="vm-grid" id="vm-grid-inner">${vms.map((vm, i) => VMCard(vm, i)).join('')}</div>`;
+    const containerClass = state.viewMode === 'list' ? 'vm-list' : 'vm-grid';
+    const renderFn = state.viewMode === 'list' ? VMListItem : VMCard;
+    content = `<div class="${containerClass}" id="vm-grid-inner">${vms.map((vm, i) => renderFn(vm, i)).join('')}</div>`;
   }
 
   return `<section id="page-vms" class="page${state.page === 'vms' ? ' active' : ''}">
@@ -1685,6 +2045,14 @@ function VMsPage() {
         <span class="stat-item"><span class="stat-dot stopped"></span>${stopped} Stopped</span>
       </div>
       <div class="header-actions">
+        <div class="view-toggle">
+          <button class="view-toggle-btn${state.viewMode === 'grid' ? ' active' : ''}" data-action="toggle-view" data-view="grid" title="Grid View">
+            ${Icons.grid}
+          </button>
+          <button class="view-toggle-btn${state.viewMode === 'list' ? ' active' : ''}" data-action="toggle-view" data-view="list" title="List View">
+            ${Icons.list}
+          </button>
+        </div>
         <button class="btn btn-ghost btn-sm" data-action="refresh-vms">${Icons.refresh} Refresh</button>
         <button class="btn btn-primary btn-sm" data-action="open-drawer">${Icons.plus} Deploy VM</button>
       </div>
@@ -2280,6 +2648,7 @@ function App() {
     <main class="main">
       ${VMsPage()}
     </main>
+    ${BulkActionBar()}
   </div>
   ${Drawer()}`;
 }
@@ -2324,7 +2693,9 @@ function renderVMGrid() {
       <button class="btn btn-secondary" data-action="clear-filters">Clear Filters</button>
     </div>`;
   } else {
-    container.innerHTML = `<div class="vm-grid" id="vm-grid-inner">${vms.map((vm, i) => VMCard(vm, i)).join('')}</div>`;
+    const containerClass = state.viewMode === 'list' ? 'vm-list' : 'vm-grid';
+    const renderFn = state.viewMode === 'list' ? VMListItem : VMCard;
+    container.innerHTML = `<div class="${containerClass}" id="vm-grid-inner">${vms.map((vm, i) => renderFn(vm, i)).join('')}</div>`;
   }
 
   // Update stats
@@ -2340,6 +2711,18 @@ function renderVMGrid() {
 function renderProvisionProgress() {
   const panel = document.getElementById('prov-pipeline-content');
   if (panel) panel.innerHTML = ProvisionPipeline();
+}
+
+function updateBulkActionBar() {
+  const bar = document.querySelector('.bulk-action-bar');
+  if (!bar) return;
+  const count = state.selectedVMs.size;
+  const visible = count > 0;
+  bar.classList.toggle('visible', visible);
+  const countEl = bar.querySelector('.bulk-action-count');
+  if (countEl) {
+    countEl.innerHTML = `<strong>${count}</strong> VM${count !== 1 ? 's' : ''} selected`;
+  }
 }
 
 function attachPostRenderHooks() {
@@ -2433,6 +2816,67 @@ document.addEventListener('click', async (e) => {
       el.disabled = false;
       el.querySelector('svg')?.removeAttribute('style');
       break;
+
+    case 'toggle-view': {
+      const view = el.dataset.view;
+      if (view && (view === 'grid' || view === 'list')) {
+        state.viewMode = view;
+        renderVMGrid();
+        // Update toggle button states
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.view === view);
+        });
+      }
+      break;
+    }
+
+    case 'toggle-vm': {
+      const vmid = +el.dataset.vmid;
+      if (state.selectedVMs.has(vmid)) {
+        state.selectedVMs.delete(vmid);
+      } else {
+        state.selectedVMs.add(vmid);
+      }
+      renderVMGrid();
+      updateBulkActionBar();
+      break;
+    }
+
+    case 'clear-selection':
+      state.selectedVMs.clear();
+      renderVMGrid();
+      updateBulkActionBar();
+      break;
+
+    case 'bulk-start':
+    case 'bulk-stop':
+    case 'bulk-restart':
+    case 'bulk-delete': {
+      const act = action.replace('bulk-', '');
+      const vmids = Array.from(state.selectedVMs);
+      if (vmids.length === 0) break;
+      
+      if (act === 'delete') {
+        const confirmed = await confirm(
+          'Delete VMs',
+          `Are you sure you want to delete ${vmids.length} VM${vmids.length !== 1 ? 's' : ''}? This action cannot be undone.`
+        );
+        if (!confirmed) break;
+      }
+      
+      // Execute action for each VM
+      for (const vmid of vmids) {
+        const vm = state.vms.find(v => v.vmid === vmid);
+        if (vm) {
+          await handleVMAction(act, vmid, vm.name);
+        }
+      }
+      
+      state.selectedVMs.clear();
+      renderVMGrid();
+      updateBulkActionBar();
+      break;
+    }
 
     case 'vm-start':
     case 'vm-stop':
