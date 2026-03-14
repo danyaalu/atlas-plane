@@ -340,6 +340,10 @@ code { font-family: var(--mono); font-size: 0.9em; }
 .no-animate .vm-card {
   animation: none;
 }
+.no-animate .vm-card.status-changed,
+.vm-card.status-changed {
+  animation: statusFlash 1.4s var(--ease-out) forwards;
+}
 .vm-card::before {
   content: ''; position: absolute; inset: 0;
   border-radius: inherit;
@@ -464,6 +468,10 @@ code { font-family: var(--mono); font-size: 0.9em; }
 }
 .no-animate .vm-list-item {
   animation: none;
+}
+.no-animate .vm-list-item.status-changed,
+.vm-list-item.status-changed {
+  animation: statusFlash 1.4s var(--ease-out) forwards;
 }
 
 .vm-list-item:hover {
@@ -1226,6 +1234,12 @@ input[type="range"].hw-range::-moz-range-track { height: 5px; background: var(--
   to { opacity: 1; transform: none; }
 }
 
+@keyframes statusFlash {
+  0%   { box-shadow: 0 0 0 2px rgba(79,142,247,0.55), 0 0 18px rgba(79,142,247,0.18); }
+  50%  { box-shadow: 0 0 0 1px rgba(79,142,247,0.25), 0 0 8px rgba(79,142,247,0.08); }
+  100% { box-shadow: none; }
+}
+
 /* ═══ Status Pulse Animation ═════════════════════════════════════════════ */
 @keyframes statusPulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -1582,7 +1596,10 @@ const state = {
   drawerOpen: false,
   vms: [],
   vmsLoading: true,
-  vmsInitialLoad: true, // Track if this is the first load (for animations)
+  vmsInitialLoad: true,    // True until first VM list is rendered (enables enter animations)
+  animateNextRender: false, // Set to true to force animations on the next renderVMGrid call
+  prevVmStatuses: {},       // vmid -> status, for detecting status changes
+  changedVmIds: new Set(),  // VMIDs whose status changed since last load
   config: {},
   viewMode: 'grid', // 'grid' | 'list'
   selectedVMs: new Set(), // Set of selected VMIDs
@@ -1862,7 +1879,7 @@ function VMCard(vm, idx) {
     }
   }
 
-  return `<div class="vm-card${isTemplate ? ' template' : ''}${isSelected ? ' selected' : ''}" style="animation-delay:${delay}s">
+  return `<div class="vm-card${isTemplate ? ' template' : ''}${isSelected ? ' selected' : ''}" data-vmid-card="${vm.vmid}" style="animation-delay:${delay}s">
     <div class="vm-card-head">
       <div class="vm-card-head-left">
         ${!isTemplate ? `<div class="vm-checkbox${isSelected ? ' checked' : ''}" data-action="toggle-vm" data-vmid="${vm.vmid}">${Icons.check}</div>` : ''}
@@ -1955,7 +1972,7 @@ function VMListItem(vm, idx) {
       <span class="vm-list-stat-value">${mPct}%</span>
     </div>` : '<div></div>';
 
-  return `<div class="vm-list-item${isTemplate ? ' template' : ''}${isSelected ? ' selected' : ''}" style="animation-delay:${delay}s">
+  return `<div class="vm-list-item${isTemplate ? ' template' : ''}${isSelected ? ' selected' : ''}" data-vmid-card="${vm.vmid}" style="animation-delay:${delay}s">
     ${!isTemplate ? `<div class="vm-checkbox${isSelected ? ' checked' : ''}" data-action="toggle-vm" data-vmid="${vm.vmid}">${Icons.check}</div>` : '<div></div>'}
     ${StatusBadge(vm.status)}
     <div class="vm-list-item-info">
@@ -2763,12 +2780,25 @@ function renderVMGrid() {
     </div>`;
   } else {
     const containerClass = state.viewMode === 'list' ? 'vm-list' : 'vm-grid';
-    const noAnimateClass = state.vmsInitialLoad ? '' : ' no-animate';
+    const shouldAnimate = state.vmsInitialLoad || state.animateNextRender;
+    const noAnimateClass = shouldAnimate ? '' : ' no-animate';
     const renderFn = state.viewMode === 'list' ? VMListItem : VMCard;
     container.innerHTML = `<div class="${containerClass}${noAnimateClass}" id="vm-grid-inner">${vms.map((vm, i) => renderFn(vm, i)).join('')}</div>`;
-    // After first render with VMs, disable animations for subsequent updates
-    if (state.vmsInitialLoad && vms.length > 0) {
-      state.vmsInitialLoad = false;
+
+    // After first render with VMs, disable enter animations for subsequent data updates
+    if (state.vmsInitialLoad && vms.length > 0) state.vmsInitialLoad = false;
+    state.animateNextRender = false;
+
+    // Apply status-change flash to cards whose status changed since last load
+    if (state.changedVmIds.size > 0) {
+      state.changedVmIds.forEach(vmid => {
+        const card = container.querySelector(`[data-vmid-card="${vmid}"]`);
+        if (card) {
+          card.classList.add('status-changed');
+          card.addEventListener('animationend', () => card.classList.remove('status-changed'), { once: true });
+        }
+      });
+      state.changedVmIds.clear();
     }
   }
 
@@ -2895,6 +2925,7 @@ document.addEventListener('click', async (e) => {
       const view = el.dataset.view;
       if (view && (view === 'grid' || view === 'list')) {
         state.viewMode = view;
+        state.animateNextRender = true;
         renderVMGrid();
         // Update toggle button states
         document.querySelectorAll('.view-toggle-btn').forEach(btn => {
@@ -3097,6 +3128,7 @@ document.addEventListener('click', async (e) => {
 
     case 'toggle-sort-dir':
       state.filters.sortDir = state.filters.sortDir === 'asc' ? 'desc' : 'asc';
+      state.animateNextRender = true;
       renderVMGrid();
       // Update sort dir button tooltip
       el.dataset.tip = state.filters.sortDir === 'asc' ? 'Ascending' : 'Descending';
@@ -3104,6 +3136,7 @@ document.addEventListener('click', async (e) => {
 
     case 'clear-filters':
       state.filters = { search: '', node: 'all', provisioning: 'all', status: 'all', sort: 'vmid', sortDir: 'asc' };
+      state.animateNextRender = true;
       render();
       break;
 
@@ -3114,6 +3147,7 @@ document.addEventListener('click', async (e) => {
       // Update active segment visually
       el.closest('.segment-group').querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
       el.classList.add('active');
+      state.animateNextRender = true;
       renderVMGrid();
       break;
     }
@@ -3123,10 +3157,12 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('change', (e) => {
   if (e.target.id === 'filter-node') {
     state.filters.node = e.target.value;
+    state.animateNextRender = true;
     renderVMGrid();
   }
   if (e.target.id === 'filter-sort') {
     state.filters.sort = e.target.value;
+    state.animateNextRender = true;
     renderVMGrid();
   }
   // Persist provision wizard input changes to state
@@ -3195,6 +3231,7 @@ function switchPage(page) {
   if (page === 'provision') { openDrawer(); return; }
   if (state.page === page) return;
   state.page = page;
+  if (page === 'vms') state.animateNextRender = true;
   render();
   if (page === 'vms') loadVMs();
 }
@@ -3237,7 +3274,19 @@ async function handleVMAction(action, vmid, name, skipConfirm = false) {
 async function loadVMs() {
   try {
     const vms = await api('GET', '/vms');
-    state.vms = vms || [];
+    const newVms = vms || [];
+
+    // Detect status changes to flash affected cards
+    newVms.forEach(vm => {
+      const prev = state.prevVmStatuses[vm.vmid];
+      if (prev !== undefined && prev !== vm.status) {
+        state.changedVmIds.add(vm.vmid);
+      }
+    });
+    state.prevVmStatuses = {};
+    newVms.forEach(vm => { state.prevVmStatuses[vm.vmid] = vm.status; });
+
+    state.vms = newVms;
     state.vmsLoading = false;
     renderVMGrid();
     // Update node filter options
