@@ -1458,6 +1458,50 @@ input[type="range"].hw-range::-moz-range-track { height: 5px; background: var(--
 }
 .instance-badge.popular { background: rgba(79,142,247,0.12); color: var(--accent); border: 1px solid var(--accent-border); }
 
+/* ── Node (Availability Domain) Cards ─── */
+.node-list { display: flex; flex-direction: column; gap: 8px; }
+.node-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); cursor: pointer; transition: border-color var(--duration), background var(--duration);
+  user-select: none; position: relative; width: 100%; text-align: left;
+}
+.node-card:hover { border-color: var(--border-active); background: var(--bg-3); }
+.node-card.selected {
+  border-color: var(--accent-border);
+  background: linear-gradient(135deg, rgba(79,142,247,0.09), rgba(79,142,247,0.03));
+}
+.node-card.offline { opacity: 0.45; pointer-events: none; }
+.node-radio {
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border-active);
+  flex-shrink: 0; transition: all var(--duration); position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.node-radio::after {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #fff; opacity: 0; transition: opacity 0.18s;
+}
+.node-card.selected .node-radio { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 3px rgba(79,142,247,0.15); }
+.node-card.selected .node-radio::after { opacity: 1; }
+.node-info { flex: 1; min-width: 0; }
+.node-name { font-size: 0.88rem; font-weight: 600; color: var(--text); font-family: var(--mono); }
+.node-status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.63rem; font-weight: 600; padding: 2px 7px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.04em; margin-left: 8px;
+}
+.node-status-badge.online { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.node-status-badge.offline { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.node-stats { flex: 2; display: flex; flex-direction: column; gap: 7px; }
+.node-stat-row { display: flex; flex-direction: column; gap: 3px; }
+.node-stat-hd { display: flex; justify-content: space-between; align-items: baseline; }
+.node-stat-label { font-size: 0.68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.node-stat-val { font-size: 0.72rem; font-family: var(--mono); color: var(--text-2); }
+.node-stat-bar { height: 4px; background: var(--bg-4); border-radius: 2px; overflow: hidden; }
+.node-stat-fill { height: 100%; border-radius: 2px; transition: width 0.4s var(--ease); }
+.node-stat-fill.cpu { background: var(--accent); }
+.node-stat-fill.mem { background: var(--green); }
+.node-loading { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-3); padding: 8px 0; }
 /* ── Custom expand inside drawer ─── */
 .drawer-custom-expand {
   overflow: hidden; transition: max-height 0.45s var(--ease), opacity 0.3s var(--ease);
@@ -1626,6 +1670,7 @@ const state = {
     stage: 'template',   // 'template' | 'profile' | 'count' | 'running' | 'done'
     template: null,      // 'debian12' | 'ubuntu2404'
     profile: null,       // 'small' | 'medium' | 'large' | 'custom'
+    node: null,          // selected PVE node name, null = use server default
     vmCount: 1,
     vmName: '',
     customCores: 2,
@@ -1635,6 +1680,8 @@ const state = {
     templateIds: { debian12: 9000, ubuntu2404: 9001 },
     vmStartId: 500,
   },
+  nodes: [],        // cached node list from /api/nodes
+  nodesLoading: false,
 };
 
 /* ── API Client ────────────────────────────────────────────────────────── */
@@ -1655,6 +1702,7 @@ function openDrawer() {
   state.drawerOpen = true;
   render();
   document.body.style.overflow = 'hidden';
+  loadNodes();
 }
 
 function closeDrawer() {
@@ -2362,6 +2410,7 @@ function getProvisionParams() {
     diskDevice: 'scsi0',
     user:       tmpl.user,
     vmStartId:  state.prov.vmStartId,
+    node:       state.prov.node || '',
   };
 }
 
@@ -2492,7 +2541,8 @@ function renderProvisionWizard() {
   const isLaunching  = !!(state.activeJobId && !state.jobDone);
   const hasProf      = !!state.prov.profile;
   const hasTmpl      = !!state.prov.template;
-  const canLaunch    = hasProf && hasTmpl && !isLaunching;
+  const hasNode      = !!state.prov.node;
+  const canLaunch    = hasProf && hasTmpl && hasNode && !isLaunching;
   const vmCount      = state.prov.vmCount;
 
   if (showPipeline) {
@@ -2625,11 +2675,27 @@ function DrawerWizardContent() {
     </div>
   </div>`;
 
+  /* Availability Domain (node) section */
+  const hasNode = !!state.prov.node;
+  const nodeSection = `
+  <div class="drawer-section${!hasProf ? ' locked' : ''}" id="drawer-sec-node">
+    <div class="drawer-section-hd">
+      ${stepNum(3, hasNode, hasProf && !hasNode)}
+      <span class="drawer-section-title">Availability Domain</span>
+      ${hasNode ? `<span class="drawer-section-chip">${esc(state.prov.node)}</span>` : ''}
+    </div>
+    <div class="node-list">
+      ${state.nodesLoading && state.nodes.length === 0
+        ? `<div class="node-loading"><span class="spinner"></span> Loading nodes…</div>`
+        : nodesListHTML()}
+    </div>
+  </div>`;
+
   /* Config section */
   const configSection = `
-  <div class="drawer-section${!hasProf ? ' locked' : ''}" id="drawer-sec-config">
+  <div class="drawer-section${!hasNode ? ' locked' : ''}" id="drawer-sec-config">
     <div class="drawer-section-hd">
-      ${stepNum(3, false, hasProf)}
+      ${stepNum(4, false, hasNode)}
       <span class="drawer-section-title">Configuration</span>
     </div>
     <div class="qty-row">
@@ -2659,7 +2725,7 @@ function DrawerWizardContent() {
       : `<div id="prov-vm-name-hint" style="font-size:0.78rem;color:var(--text-3);margin-top:4px"></div>`}
   </div>`;
 
-  return osSection + instanceSection + configSection;
+  return osSection + instanceSection + nodeSection + configSection;
 }
 
 /* ── Drawer ────────────────────────────────────────────────────────────── */
@@ -2670,7 +2736,8 @@ function Drawer() {
   const isLaunching  = !!(state.activeJobId && !state.jobDone);
   const hasProf  = !!state.prov.profile;
   const hasTmpl  = !!state.prov.template;
-  const canLaunch = hasProf && hasTmpl && !isLaunching;
+  const hasNode  = !!state.prov.node;
+  const canLaunch = hasProf && hasTmpl && hasNode && !isLaunching;
 
   const vmCount = state.prov.vmCount;
   const launchLabel = isLaunching
@@ -2890,9 +2957,9 @@ document.addEventListener('click', async (e) => {
       if (secInst) secInst.classList.remove('locked');
       const numInst = secInst?.querySelector('.drawer-step-num');
       if (numInst && !numInst.classList.contains('done')) numInst.classList.add('active');
-      // Enable launch if ready
+      // Enable launch if ready (node must also be selected)
       const lb = document.getElementById('btn-launch');
-      if (lb && state.prov.profile) lb.disabled = false;
+      if (lb && state.prov.profile && state.prov.node) lb.disabled = false;
       break;
     }
 
@@ -2909,18 +2976,43 @@ document.addEventListener('click', async (e) => {
       let chipInst = hdInst?.querySelector('.drawer-section-chip');
       if (!chipInst && hdInst) { chipInst = document.createElement('span'); chipInst.className = 'drawer-section-chip'; hdInst.appendChild(chipInst); }
       if (chipInst && profObj) chipInst.textContent = profObj.label;
+      // Unlock node section
+      const secNode = document.getElementById('drawer-sec-node');
+      if (secNode) secNode.classList.remove('locked');
+      const numNode = secNode?.querySelector('.drawer-step-num');
+      if (numNode && !numNode.classList.contains('done')) numNode.classList.add('active');
+      // Custom expand
+      renderCustomFields();
+      // Update launch button — still disabled until node is selected
+      const lb2 = document.getElementById('btn-launch');
+      if (lb2 && !state.prov.node) {
+        lb2.disabled = true;
+      }
+      break;
+    }
+
+    case 'drawer-select-node': {
+      state.prov.node = el.dataset.node;
+      document.querySelectorAll('.node-card').forEach(c =>
+        c.classList.toggle('selected', c.dataset.node === state.prov.node));
+      const secNode = document.getElementById('drawer-sec-node');
+      const numNode = secNode?.querySelector('.drawer-step-num');
+      if (numNode) { numNode.className = 'drawer-step-num done'; numNode.innerHTML = Icons.check; }
+      // Show/update chip
+      const hdNode = secNode?.querySelector('.drawer-section-hd');
+      let chipNode = hdNode?.querySelector('.drawer-section-chip');
+      if (!chipNode && hdNode) { chipNode = document.createElement('span'); chipNode.className = 'drawer-section-chip'; hdNode.appendChild(chipNode); }
+      if (chipNode) chipNode.textContent = state.prov.node;
       // Unlock config section
       const secCfg = document.getElementById('drawer-sec-config');
       if (secCfg) secCfg.classList.remove('locked');
       const numCfg = secCfg?.querySelector('.drawer-step-num');
       if (numCfg && !numCfg.classList.contains('done')) numCfg.classList.add('active');
-      // Custom expand
-      renderCustomFields();
-      // Enable launch button if template also selected
-      const lb2 = document.getElementById('btn-launch');
-      if (lb2 && state.prov.template) {
-        lb2.disabled = false;
-        lb2.innerHTML = Icons.rocketLaunch + ' Deploy ' + (state.prov.vmCount > 1 ? state.prov.vmCount + ' VMs' : 'VM');
+      // Enable launch button if all required selections made
+      const lb3 = document.getElementById('btn-launch');
+      if (lb3 && state.prov.template && state.prov.profile) {
+        lb3.disabled = false;
+        lb3.innerHTML = Icons.rocketLaunch + ' Deploy ' + (state.prov.vmCount > 1 ? state.prov.vmCount + ' VMs' : 'VM');
       }
       break;
     }
@@ -3129,6 +3221,7 @@ document.addEventListener('click', async (e) => {
       state.prov.stage    = 'template';
       state.prov.template = null;
       state.prov.profile  = null;
+      state.prov.node     = null;
       state.prov.vmCount  = 1;
       state.prov.vmName   = '';
       state.activeJobId   = null;
@@ -3429,6 +3522,70 @@ function stopJobTimer() {
 /* ═══════════════════════════════════════════════════════════════════════════
    Config Loading
    ═══════════════════════════════════════════════════════════════════════════ */
+
+async function loadNodes() {
+  if (state.nodesLoading) return;
+  state.nodesLoading = true;
+  try {
+    const nodes = await api('GET', '/nodes');
+    state.nodes = (nodes || []).sort((a, b) => (a.node || '').localeCompare(b.node || ''));
+    // Re-render the node section if drawer is open
+    const nodeList = document.getElementById('drawer-sec-node');
+    if (nodeList) {
+      const inner = nodeList.querySelector('.node-list');
+      if (inner) inner.innerHTML = nodesListHTML();
+    }
+  } catch (e) {
+    state.nodes = [];
+  } finally {
+    state.nodesLoading = false;
+  }
+}
+
+function nodesListHTML() {
+  if (state.nodesLoading && state.nodes.length === 0) {
+    return `<div class="node-loading"><span class="spinner"></span> Loading nodes…</div>`;
+  }
+  if (state.nodes.length === 0) {
+    return `<div class="node-loading">No nodes found</div>`;
+  }
+  return state.nodes.map(n => {
+    const name = n.node || '';
+    const online = n.status === 'online';
+    const cpuPct = n.maxcpu > 0 ? Math.round((n.cpu || 0) * 100) : 0;
+    const memUsed = n.mem || 0;
+    const memMax  = n.maxmem || 1;
+    const memPct  = Math.round(memUsed / memMax * 100);
+    const memUsedGB = (memUsed / 1073741824).toFixed(1);
+    const memMaxGB  = (memMax  / 1073741824).toFixed(1);
+    const sel = state.prov.node === name ? ' selected' : '';
+    const offCls = !online ? ' offline' : '';
+    return `
+    <button class="node-card${sel}${offCls}" data-action="drawer-select-node" data-node="${esc(name)}">
+      <div class="node-radio"></div>
+      <div class="node-info">
+        <span class="node-name">${esc(name)}</span>
+        <span class="node-status-badge ${online ? 'online' : 'offline'}">${online ? 'Online' : 'Offline'}</span>
+      </div>
+      <div class="node-stats">
+        <div class="node-stat-row">
+          <div class="node-stat-hd">
+            <span class="node-stat-label">CPU</span>
+            <span class="node-stat-val">${cpuPct}% of ${n.maxcpu || 0} vCPU</span>
+          </div>
+          <div class="node-stat-bar"><div class="node-stat-fill cpu" style="width:${cpuPct}%"></div></div>
+        </div>
+        <div class="node-stat-row">
+          <div class="node-stat-hd">
+            <span class="node-stat-label">Memory</span>
+            <span class="node-stat-val">${memUsedGB} / ${memMaxGB} GB</span>
+          </div>
+          <div class="node-stat-bar"><div class="node-stat-fill mem" style="width:${memPct}%"></div></div>
+        </div>
+      </div>
+    </button>`;
+  }).join('');
+}
 
 async function loadConfig() {
   try {

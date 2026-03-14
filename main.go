@@ -558,6 +558,24 @@ func (c *ProxmoxClient) deleteVM(vmID int) error {
 	return err
 }
 
+// listNodes returns all Proxmox nodes with their CPU and memory statistics.
+func (c *ProxmoxClient) listNodes() ([]map[string]interface{}, error) {
+	data, err := c.get("/api2/json/nodes")
+	if err != nil {
+		return nil, fmt.Errorf("list nodes: %w", err)
+	}
+
+	var nodes []map[string]interface{}
+	if arr, ok := data.([]interface{}); ok {
+		for _, item := range arr {
+			if m, ok := item.(map[string]interface{}); ok {
+				nodes = append(nodes, m)
+			}
+		}
+	}
+	return nodes, nil
+}
+
 // listVMs returns all VMs from the Proxmox cluster with their details.
 func (c *ProxmoxClient) listVMs() ([]map[string]interface{}, error) {
 	data, err := c.get("/api2/json/cluster/resources?type=vm")

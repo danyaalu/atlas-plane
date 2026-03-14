@@ -62,6 +62,7 @@ type ProvisionParams struct {
 	DiskDevice string `json:"diskDevice"`
 	User       string `json:"user"`
 	VMStartID  int    `json:"vmStartId"`
+	Node       string `json:"node"`
 }
 
 // VMResultJSON is the JSON-safe view of VMResult for API responses.
@@ -108,6 +109,9 @@ func startWebServer(cfg Config, port string) {
 
 	// API — Config
 	mux.HandleFunc("GET /api/config", ws.handleGetConfig)
+
+	// API — Nodes
+	mux.HandleFunc("GET /api/nodes", ws.handleListNodes)
 
 	// API — VMs
 	mux.HandleFunc("GET /api/vms", ws.handleListVMs)
@@ -164,6 +168,15 @@ func (ws *WebServer) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 		"user":       ws.cfg.User,
 		"vmStartId":  ws.cfg.VMStartID,
 	})
+}
+
+func (ws *WebServer) handleListNodes(w http.ResponseWriter, r *http.Request) {
+	nodes, err := ws.pve.listNodes()
+	if err != nil {
+		jsonError(w, "failed to list nodes: "+err.Error(), 500)
+		return
+	}
+	jsonOK(w, nodes)
 }
 
 func (ws *WebServer) handleListVMs(w http.ResponseWriter, r *http.Request) {
@@ -291,6 +304,9 @@ func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {
 	}
 	if params.VMName != "" {
 		cfg.VMName = params.VMName
+	}
+	if params.Node != "" {
+		cfg.Node = params.Node
 	}
 
 	// Allocate VMIDs.
