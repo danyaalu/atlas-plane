@@ -337,6 +337,9 @@ code { font-family: var(--mono); font-size: 0.9em; }
   position: relative; overflow: hidden;
   animation: cardEnter 0.35s var(--ease) both;
 }
+.no-animate .vm-card {
+  animation: none;
+}
 .vm-card::before {
   content: ''; position: absolute; inset: 0;
   border-radius: inherit;
@@ -458,6 +461,9 @@ code { font-family: var(--mono); font-size: 0.9em; }
   align-items: center;
   transition: all 0.25s var(--ease);
   animation: cardEnter 0.35s var(--ease) both;
+}
+.no-animate .vm-list-item {
+  animation: none;
 }
 
 .vm-list-item:hover {
@@ -1576,6 +1582,7 @@ const state = {
   drawerOpen: false,
   vms: [],
   vmsLoading: true,
+  vmsInitialLoad: true, // Track if this is the first load (for animations)
   config: {},
   viewMode: 'grid', // 'grid' | 'list'
   selectedVMs: new Set(), // Set of selected VMIDs
@@ -2756,8 +2763,13 @@ function renderVMGrid() {
     </div>`;
   } else {
     const containerClass = state.viewMode === 'list' ? 'vm-list' : 'vm-grid';
+    const noAnimateClass = state.vmsInitialLoad ? '' : ' no-animate';
     const renderFn = state.viewMode === 'list' ? VMListItem : VMCard;
-    container.innerHTML = `<div class="${containerClass}" id="vm-grid-inner">${vms.map((vm, i) => renderFn(vm, i)).join('')}</div>`;
+    container.innerHTML = `<div class="${containerClass}${noAnimateClass}" id="vm-grid-inner">${vms.map((vm, i) => renderFn(vm, i)).join('')}</div>`;
+    // After first render with VMs, disable animations for subsequent updates
+    if (state.vmsInitialLoad && vms.length > 0) {
+      state.vmsInitialLoad = false;
+    }
   }
 
   // Update stats
