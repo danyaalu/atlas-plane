@@ -64,6 +64,7 @@ type Config struct {
 	User         string        // Cloud-Init user (default "debian")
 	DiskDevice   string        // Proxmox disk identifier to resize (e.g. scsi0)
 	DiskSize     string        // Target disk size after clone (e.g. 5G)
+	VMName       string        // Optional base name for provisioned VMs
 
 	// SSH access to the Proxmox host (for writing snippet files).
 	PVESSHUser string
@@ -91,6 +92,7 @@ func loadConfig() Config {
 		User:         envOr("VM_USER", "debian"),
 		DiskDevice:   envOr("VM_DISK_DEVICE", "scsi0"),
 		DiskSize:     envOr("VM_DISK_SIZE", "5G"),
+		VMName:       os.Getenv("VM_NAME"),
 		PVESSHUser:   envOr("PVE_SSH_USER", "root"),
 		PVESSHKey:    envOr("PVE_SSH_KEY", defaultSSHKey),
 		PVESSHPort:   envOr("PVE_SSH_PORT", "22"),
@@ -772,10 +774,10 @@ func main() {
 		fatalf("VMID allocation failed: %v", err)
 	}
 
-	// Build specs with random names.
+	// Build specs — use VM_NAME if set, otherwise random names.
 	specs := make([]VMSpec, cfg.VMCount)
 	for i, id := range ids {
-		specs[i] = VMSpec{VMID: id, Name: randomVMName()}
+		specs[i] = VMSpec{VMID: id, Name: vmName(cfg.VMName, i, cfg.VMCount)}
 	}
 
 	// ── Banner ───────────────────────────────────────────────────────────

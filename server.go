@@ -54,6 +54,7 @@ type Job struct {
 // ProvisionParams are the per-job overrides sent by the web UI.
 type ProvisionParams struct {
 	VMCount    int    `json:"vmCount"`
+	VMName     string `json:"vmName"`
 	TemplateID int    `json:"templateId"`
 	Cores      int    `json:"cores"`
 	Memory     int    `json:"memory"`
@@ -288,6 +289,9 @@ func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {
 	if params.VMStartID > 0 {
 		cfg.VMStartID = params.VMStartID
 	}
+	if params.VMName != "" {
+		cfg.VMName = params.VMName
+	}
 
 	// Allocate VMIDs.
 	ids, err := ws.pve.allocateVMIDs(cfg.VMStartID, cfg.VMCount)
@@ -298,7 +302,7 @@ func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {
 
 	specs := make([]VMSpec, cfg.VMCount)
 	for i, id := range ids {
-		specs[i] = VMSpec{VMID: id, Name: randomVMName()}
+		specs[i] = VMSpec{VMID: id, Name: vmName(cfg.VMName, i, cfg.VMCount)}
 	}
 
 	// Create job.
@@ -484,6 +488,22 @@ func (ws *WebServer) runJob(job *Job, cfg Config, specs []VMSpec) {
 	}
 
 	close(job.done)
+}
+
+// ── Naming Helper ─────────────────────────────────────────────────────────
+
+// vmName returns the name for VM at index i out of total count.
+// If baseName is empty, a random name is generated.
+// If count == 1, baseName is used as-is.
+// If count > 1, names are formatted as "<baseName>-01", "<baseName>-02", etc.
+func vmName(baseName string, i, count int) string {
+	if baseName == "" {
+		return randomVMName()
+	}
+	if count == 1 {
+		return baseName
+	}
+	return fmt.Sprintf("%s-%02d", baseName, i+1)
 }
 
 // ── JSON Helpers ─────────────────────────────────────────────────────────

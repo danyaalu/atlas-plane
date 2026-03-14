@@ -1627,6 +1627,7 @@ const state = {
     template: null,      // 'debian12' | 'ubuntu2404'
     profile: null,       // 'small' | 'medium' | 'large' | 'custom'
     vmCount: 1,
+    vmName: '',
     customCores: 2,
     customMemory: 2048,
     customDisk: '20G',
@@ -2354,6 +2355,7 @@ function getProvisionParams() {
   return {
     templateId: state.prov.templateIds[tmpl.id] ?? 9000,
     vmCount:    state.prov.vmCount,
+    vmName:     state.prov.vmName,
     cores:      isCustom ? state.prov.customCores  : prof.cores,
     memory:     isCustom ? state.prov.customMemory : prof.memory,
     diskSize:   isCustom ? state.prov.customDisk   : prof.disk,
@@ -2645,6 +2647,16 @@ function DrawerWizardContent() {
       <label>Starting VMID</label>
       <input type="number" id="prov-start-vmid" value="${state.prov.vmStartId}" min="100" max="9999">
     </div>
+    <div class="start-vmid-row" style="margin-top:10px">
+      <label>VM Name <span style="font-weight:400;color:var(--text-3)">(optional)</span></label>
+      <input type="text" id="prov-vm-name" value="${esc(state.prov.vmName)}"
+        placeholder="e.g. my-vm" maxlength="40" style="font-family:inherit">
+    </div>
+    ${state.prov.vmCount > 1 && state.prov.vmName
+      ? `<div id="prov-vm-name-hint" style="font-size:0.78rem;color:var(--text-3);margin-top:4px">
+           VMs will be named <strong>${esc(state.prov.vmName)}-01</strong> … <strong>${esc(state.prov.vmName)}-${String(state.prov.vmCount).padStart(2,'0')}</strong>
+         </div>`
+      : `<div id="prov-vm-name-hint" style="font-size:0.78rem;color:var(--text-3);margin-top:4px"></div>`}
   </div>`;
 
   return osSection + instanceSection + configSection;
@@ -3118,6 +3130,7 @@ document.addEventListener('click', async (e) => {
       state.prov.template = null;
       state.prov.profile  = null;
       state.prov.vmCount  = 1;
+      state.prov.vmName   = '';
       state.activeJobId   = null;
       state.provVMs       = {};
       state.jobDone       = false;
@@ -3216,6 +3229,18 @@ document.addEventListener('input', (e) => {
   if (e.target.id === 'prov-start-vmid') {
     const v = +e.target.value;
     if (v >= 100) state.prov.vmStartId = v;
+  }
+  // VM Name
+  if (e.target.id === 'prov-vm-name') {
+    state.prov.vmName = e.target.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    e.target.value = state.prov.vmName;
+    // re-render just the preview hint without full redraw
+    const hint = document.getElementById('prov-vm-name-hint');
+    if (hint) {
+      hint.innerHTML = state.prov.vmCount > 1 && state.prov.vmName
+        ? `VMs will be named <strong>${esc(state.prov.vmName)}-01</strong> … <strong>${esc(state.prov.vmName)}-${String(state.prov.vmCount).padStart(2,'0')}</strong>`
+        : '';
+    }
   }
 });
 
