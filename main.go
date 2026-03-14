@@ -540,8 +540,20 @@ func (c *ProxmoxClient) startVM(vmID int) error {
 	return err
 }
 
+func (c *ProxmoxClient) startVMOnNode(node string, vmID int) error {
+	path := fmt.Sprintf("/api2/json/nodes/%s/qemu/%d/status/start", node, vmID)
+	_, err := c.postForm(path, url.Values{})
+	return err
+}
+
 func (c *ProxmoxClient) stopVM(vmID int) error {
 	path := fmt.Sprintf("/api2/json/nodes/%s/qemu/%d/status/stop", c.node, vmID)
+	_, err := c.postForm(path, url.Values{})
+	return err
+}
+
+func (c *ProxmoxClient) stopVMOnNode(node string, vmID int) error {
+	path := fmt.Sprintf("/api2/json/nodes/%s/qemu/%d/status/stop", node, vmID)
 	_, err := c.postForm(path, url.Values{})
 	return err
 }
@@ -552,10 +564,44 @@ func (c *ProxmoxClient) rebootVM(vmID int) error {
 	return err
 }
 
+func (c *ProxmoxClient) rebootVMOnNode(node string, vmID int) error {
+	path := fmt.Sprintf("/api2/json/nodes/%s/qemu/%d/status/reboot", node, vmID)
+	_, err := c.postForm(path, url.Values{})
+	return err
+}
+
 func (c *ProxmoxClient) deleteVM(vmID int) error {
 	path := fmt.Sprintf("/api2/json/nodes/%s/qemu/%d", c.node, vmID)
 	_, err := c.apiDo("DELETE", path, nil, "")
 	return err
+}
+
+func (c *ProxmoxClient) deleteVMOnNode(node string, vmID int) error {
+	path := fmt.Sprintf("/api2/json/nodes/%s/qemu/%d", node, vmID)
+	_, err := c.apiDo("DELETE", path, nil, "")
+	return err
+}
+
+func (c *ProxmoxClient) resolveVMNode(vmID int) (string, error) {
+	vms, err := c.listVMs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, vm := range vms {
+		id, ok := vm["vmid"].(float64)
+		if !ok || int(id) != vmID {
+			continue
+		}
+		node, _ := vm["node"].(string)
+		node = strings.TrimSpace(node)
+		if node == "" {
+			return "", fmt.Errorf("vm %d found but node is empty", vmID)
+		}
+		return node, nil
+	}
+
+	return "", fmt.Errorf("vm %d not found in cluster resources", vmID)
 }
 
 // listNodes returns all Proxmox nodes with their CPU and memory statistics.
@@ -574,6 +620,26 @@ func (c *ProxmoxClient) listNodes() ([]map[string]interface{}, error) {
 		}
 	}
 	return nodes, nil
+}
+
+// listNodeStorages returns storage backends visible to a specific node.
+func (c *ProxmoxClient) listNodeStorages(node string) ([]map[string]interface{}, error) {
+	path := fmt.Sprintf("/api2/json/nodes/%s/storage", node)
+	data, err := c.get(path)
+	if err != nil {
+		return nil, fmt.Errorf("list node storages for %s: %w", node, err)
+	}
+
+	var storages []map[string]interface{}
+	if arr, ok := data.([]interface{}); ok {
+		for _, item := range arr {
+			if m, ok := item.(map[string]interface{}); ok {
+				storages = append(storages, m)
+			}
+		}
+	}
+
+	return storages, nil
 }
 
 // listVMs returns all VMs from the Proxmox cluster with their details.

@@ -5,3 +5,8 @@ ca_ed25519
 
 # Executable binaries
 atlas-plane
+
+# Sensitive files
+*.env
+.env
+atlas-template-sot.json

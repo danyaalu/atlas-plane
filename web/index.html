@@ -1573,6 +1573,74 @@ input[type="range"].hw-range::-moz-range-track { height: 5px; background: var(--
   user-select: none;
 }
 
+/* ── Template Management ─── */
+.templates-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 14px; }
+.tpl-panel {
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 16px;
+}
+.tpl-panel h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+.tpl-table { width: 100%; border-collapse: collapse; }
+.tpl-table th, .tpl-table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 0.78rem; }
+.tpl-table th { color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; font-size: 0.66rem; }
+.tpl-table td { color: var(--text-2); }
+.tpl-click { color: var(--text); font-weight: 600; cursor: pointer; }
+.tpl-click.active { color: var(--accent-hover); }
+.tpl-vmid { font-family: var(--mono); color: var(--text); }
+.tpl-state-pill {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem; padding: 3px 8px;
+  border-radius: 999px; border: 1px solid var(--border);
+}
+.tpl-state-pill.ok { color: var(--green); background: var(--green-bg); border-color: var(--green-border); }
+.tpl-state-pill.warn { color: var(--amber); background: var(--amber-bg); border-color: rgba(251,191,36,0.2); }
+
+.tpl-nodes { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.tpl-node-row {
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-1);
+  padding: 10px 12px; display: grid; grid-template-columns: 1.1fr 1fr 1fr auto; gap: 12px; align-items: center;
+}
+.tpl-node-meta { display: flex; flex-direction: column; gap: 5px; }
+.tpl-node-name { font-weight: 600; font-size: 0.82rem; color: var(--text); }
+.tpl-node-status { font-size: 0.7rem; color: var(--text-3); }
+.tpl-reach { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; }
+.tpl-reach-dot { width: 7px; height: 7px; border-radius: 50%; }
+.tpl-reach-dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+.tpl-reach-dot.bad { background: var(--red); }
+.tpl-storage-select {
+  width: 100%; padding: 6px 8px; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-size: 0.76rem;
+}
+
+.tpl-build-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; margin-top: 10px; }
+.tpl-field label { display: block; font-size: 0.68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.tpl-field input, .tpl-field select {
+  width: 100%; padding: 7px 9px; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem;
+}
+
+.tpl-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.tpl-step {
+  font-size: 0.68rem; text-align: center; padding: 6px 5px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); color: var(--text-3); background: var(--bg-1);
+}
+.tpl-step.done { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+.tpl-step.active { color: var(--accent-hover); border-color: var(--accent-border); background: var(--accent-bg); }
+.tpl-step.fail { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+
+.tpl-console {
+  margin-top: 12px; background: var(--bg-0); border: 1px solid var(--border); border-radius: var(--radius);
+  font-family: var(--mono); font-size: 0.72rem; color: var(--text-2); height: 220px; overflow: auto; padding: 10px;
+}
+.tpl-log-line { margin-bottom: 5px; white-space: pre-wrap; word-break: break-word; }
+.tpl-log-time { color: var(--text-4); margin-right: 8px; }
+.tpl-log-stage { color: var(--accent-hover); margin-right: 6px; text-transform: uppercase; font-size: 0.66rem; }
+
+@media (max-width: 1100px) {
+  .templates-layout { grid-template-columns: 1fr; }
+  .tpl-node-row { grid-template-columns: 1fr; }
+  .tpl-build-grid { grid-template-columns: 1fr; }
+}
+
 /* ── Responsive drawer ─── */
 @media (max-width: 600px) {
   .drawer { width: 100vw; border-left: none; }
@@ -1633,6 +1701,16 @@ const STEP_MAP = {
   configuring:1, generating_cert:2, writing_snippet:3,
   booting:4, waiting_ip:5, ready:6, failed:-1
 };
+const TEMPLATE_STAGE_ORDER = ['Missing', 'Downloading', 'Importing', 'Provisioning', 'Converting', 'Ready'];
+const TEMPLATE_STAGE_LABELS = {
+  Missing: 'Missing',
+  Downloading: 'Image Fetching',
+  Importing: 'Volume Creation',
+  Provisioning: 'Hardware Provisioning',
+  Converting: 'Template Conversion',
+  Ready: 'Ready',
+  Failed: 'Failed'
+};
 const ATLAS_VM_PATTERN = /^[a-z]+-[a-z]+-[0-9a-f]{6}$/;
 
 /* ── Application State ─────────────────────────────────────────────────── */
@@ -1678,11 +1756,23 @@ const state = {
     customMemory: 2048,
     customDisk: '20G',
     inputMode: 'slider',   // 'slider' | 'number'
-    templateIds: { debian12: 9000, ubuntu2404: 9001 },
     vmStartId: 500,
   },
   nodes: [],        // cached node list from /api/nodes
   nodesLoading: false,
+  templateMgr: {
+    selectedTemplate: 'debian12-cloud',
+    templates: [],
+    nodes: [],
+    logsByNode: {},
+    clusterUsedVMIDs: [],
+    suggestedVmids: {},
+    selectedNode: '',
+    buildNode: '',
+    vmidInput: '',
+    loading: false,
+    busy: false,
+  },
 };
 
 /* ── API Client ────────────────────────────────────────────────────────── */
@@ -2302,6 +2392,11 @@ const TEMPLATES = [
   { id: 'ubuntu2404', label: 'Ubuntu 24.04', sub: 'Noble Numbat · LTS', user: 'ubuntu' },
 ];
 
+const PROVISION_TEMPLATE_NAMES = {
+  debian12: 'debian12-cloud',
+  ubuntu2404: 'ubuntu2404-cloud',
+};
+
 /* ── Provision helper utilities ───────────────────────────────────────── */
 function parseDiskGB(s) { return parseInt(s, 10) || 20; }
 
@@ -2401,8 +2496,9 @@ function getProvisionParams() {
   const tmpl = TEMPLATES.find(t => t.id === state.prov.template) || TEMPLATES[0];
   const prof = PROFILES.find(p => p.id === state.prov.profile) || PROFILES[0];
   const isCustom = state.prov.profile === 'custom';
+  const templateName = PROVISION_TEMPLATE_NAMES[tmpl.id] || `${tmpl.id}-cloud`;
   return {
-    templateId: state.prov.templateIds[tmpl.id] ?? 9000,
+    templateName,
     vmCount:    state.prov.vmCount,
     vmName:     state.prov.vmName,
     cores:      isCustom ? state.prov.customCores  : prof.cores,
@@ -2432,7 +2528,6 @@ function ProvisionWizard() {
     </div>
     <div class="template-grid">
       ${TEMPLATES.map(t => {
-        const vmid = state.prov.templateIds[t.id] ?? 9000;
         const sel  = state.prov.template === t.id ? ' selected' : '';
         return `
         <div class="template-card${sel}" data-action="select-template" data-template="${t.id}">
@@ -2443,11 +2538,6 @@ function ProvisionWizard() {
           <div class="tc-icon">${DISTRO_ICONS[t.id] || ''}</div>
           <div class="tc-name">${t.label}</div>
           <div class="tc-sub">${t.sub}</div>
-          <div class="tc-vmid">
-            <label>Template VMID</label>
-            <input type="number" class="prov-tmpl-vmid-input" data-tmpl="${t.id}"
-              value="${vmid}" onclick="event.stopPropagation()">
-          </div>
         </div>`;
       }).join('')}
     </div>
@@ -2591,6 +2681,175 @@ function _updateCountUI() {
 /* ── Provision Page (legacy — kept for compatibility) ──────────────────── */
 function ProvisionPage() { return ''; }
 
+/* ── Templates Module ───────────────────────────────────────────────────── */
+function templateStageIndex(status) {
+  return TEMPLATE_STAGE_ORDER.indexOf(status || 'Missing');
+}
+
+function TemplateNodeStepper(nodeState) {
+  const status = nodeState?.status || 'Missing';
+  const idx = templateStageIndex(status);
+  return `<div class="tpl-stepper">
+    ${TEMPLATE_STAGE_ORDER.slice(1).map((stage, stageIdx) => {
+      const absoluteIdx = stageIdx + 1;
+      let cls = '';
+      if (status === 'Failed' && stage === 'Converting') cls = 'fail';
+      else if (status === 'Ready' || absoluteIdx < idx) cls = 'done';
+      else if (absoluteIdx === idx) cls = 'active';
+      return `<div class="tpl-step ${cls}">${esc(TEMPLATE_STAGE_LABELS[stage] || stage)}</div>`;
+    }).join('')}
+  </div>`;
+}
+
+function TemplatesPageContent() {
+  const module = state.templateMgr;
+  const selected = module.selectedTemplate;
+  const templates = module.templates || [];
+  const selectedTemplate = templates.find(t => t.name === selected) || templates[0] || null;
+  const selectedNode = module.selectedNode || module.buildNode || (module.nodes[0]?.node || '');
+  const buildNode = module.buildNode || (module.nodes[0]?.node || '');
+  const logs = selectedNode ? (module.logsByNode[selectedNode] || []) : [];
+
+  const nodeStates = (selectedTemplate?.nodeStates || []).reduce((acc, row) => {
+    acc[row.node] = row;
+    return acc;
+  }, {});
+  const buildNodeState = nodeStates[buildNode] || null;
+  const suggestedBuildVmid = Number((module.suggestedVmids || {})[buildNode]) || 9000;
+  const vmidInputValue = module.vmidInput === '' || module.vmidInput == null
+    ? ''
+    : String(module.vmidInput);
+
+  return `<div class="page-header">
+      <h2>Node Configuration & Template Management</h2>
+      <div class="header-actions">
+        <button class="btn btn-ghost btn-sm" data-action="template-refresh">${Icons.refresh} Refresh</button>
+      </div>
+    </div>
+
+    <div class="templates-layout">
+      <div class="tpl-panel">
+        <h3>Sync Overview</h3>
+        <table class="tpl-table">
+          <thead>
+            <tr>
+              <th>Template</th>
+              <th>Node VMIDs</th>
+              <th>Ready</th>
+              <th>Out of Sync</th>
+              <th>Health</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${templates.length === 0 ? `<tr><td colspan="5">No templates tracked yet.</td></tr>` : templates.map(t => {
+              const vmidEntries = Object.entries(t.vmidsByNode || {}).sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+              const healthy = (t.outOfSync || 0) === 0 && (t.totalNodes || 0) > 0;
+              return `<tr>
+                <td><span class="tpl-click${selected === t.name ? ' active' : ''}" data-action="template-select" data-template="${esc(t.name)}">${esc(t.name)}</span></td>
+                <td class="tpl-vmid">${vmidEntries.length ? vmidEntries.map(([node, vmid]) => `${esc(node)}:${esc(String(vmid))}`).join(' · ') : '—'}</td>
+                <td>${t.readyCount || 0} / ${t.totalNodes || 0}</td>
+                <td>${t.outOfSync || 0}</td>
+                <td><span class="tpl-state-pill ${healthy ? 'ok' : 'warn'}">${healthy ? 'Ready' : 'Build required'}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <h3 style="margin-top:16px">Template Builder</h3>
+        <div class="tpl-build-grid">
+          <div class="tpl-field">
+            <label>Node</label>
+            <select data-action="template-build-node">
+              ${module.nodes.map(n => `<option value="${esc(n.node)}"${module.buildNode === n.node ? ' selected' : ''}>${esc(n.node)} ${n.reachable ? '' : '(offline)'}</option>`).join('')}
+            </select>
+          </div>
+          <div class="tpl-field">
+            <label>Node VMID</label>
+            <input type="number" min="100" max="999999999" value="${esc(vmidInputValue)}" data-action="template-vmid-input" placeholder="${buildNodeState?.vmid > 0 ? esc(String(buildNodeState.vmid)) : esc(String(suggestedBuildVmid))}">
+          </div>
+          <button class="btn btn-primary" data-action="template-build" ${module.busy ? 'disabled' : ''}>${module.busy ? '<span class="spinner"></span> Building…' : Icons.bolt + ' Build Template'}</button>
+        </div>
+        <div style="font-size:0.72rem;color:var(--text-3);margin-top:8px">
+          Optional: leave blank to auto-select the next free VMID from 9000 for this node.
+        </div>
+      </div>
+
+      <div class="tpl-panel">
+        <h3>Node Configuration</h3>
+        <div class="tpl-nodes">
+          ${module.nodes.length === 0 ? `<div class="node-loading">${module.loading ? '<span class="spinner"></span> Loading nodes…' : 'No nodes available.'}</div>` : module.nodes.map(n => {
+            const ns = nodeStates[n.node] || { status: 'Missing' };
+            const configured = !!n.assignedStorage;
+            return `<div class="tpl-node-row">
+              <div class="tpl-node-meta">
+                <div class="tpl-node-name">${esc(n.node)}</div>
+                <div class="tpl-node-status">Status: ${esc(ns.status || 'Missing')} · ${configured ? 'Configured' : 'Storage required'}</div>
+              </div>
+              <div class="tpl-reach"><span class="tpl-reach-dot ${n.reachable ? 'ok' : 'bad'}"></span>${n.reachable ? 'Reachable' : 'Unreachable'}</div>
+              <select class="tpl-storage-select" data-action="template-storage" data-node="${esc(n.node)}">
+                <option value="">Select target storage</option>
+                ${(n.storages || []).map(s => `<option value="${esc(s.id || '')}"${n.assignedStorage === s.id ? ' selected' : ''}>${esc(s.id || '')} (${esc(s.type || 'storage')})</option>`).join('')}
+              </select>
+              <button class="btn btn-secondary btn-sm" data-action="template-log-node" data-node="${esc(n.node)}">Logs</button>
+              <div style="grid-column:1 / -1">
+                ${TemplateNodeStepper(ns)}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+
+        <h3 style="margin-top:16px">Task Feed ${selectedNode ? '· ' + esc(selectedNode) : ''}</h3>
+        <div class="tpl-console">
+          ${logs.length === 0
+            ? '<div class="tpl-log-line">No task output for this node yet.</div>'
+            : logs.slice(-150).map(line => `<div class="tpl-log-line"><span class="tpl-log-time">${new Date(line.timestamp).toLocaleTimeString()}</span><span class="tpl-log-stage">${esc(line.stage || 'info')}</span>${esc(line.message || '')}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+function TemplatesPage() {
+  return `<section id="page-templates" class="page${state.page === 'templates' ? ' active' : ''}">
+    ${TemplatesPageContent()}
+  </section>`;
+}
+
+function renderTemplatesPage() {
+  const page = document.getElementById('page-templates');
+  if (!page) return;
+
+  const previousConsole = page.querySelector('.tpl-console');
+  let previousScrollTop = 0;
+  let wasNearBottom = true;
+  if (previousConsole) {
+    previousScrollTop = previousConsole.scrollTop;
+    const gapToBottom = previousConsole.scrollHeight - (previousConsole.scrollTop + previousConsole.clientHeight);
+    wasNearBottom = gapToBottom <= 12;
+  }
+
+  page.innerHTML = TemplatesPageContent();
+
+  const nextConsole = page.querySelector('.tpl-console');
+  if (nextConsole) {
+    if (wasNearBottom) {
+      nextConsole.scrollTop = nextConsole.scrollHeight;
+    } else {
+      const maxTop = Math.max(0, nextConsole.scrollHeight - nextConsole.clientHeight);
+      nextConsole.scrollTop = Math.min(previousScrollTop, maxTop);
+    }
+  }
+}
+
+function isTemplateInteractionActive() {
+  const root = document.getElementById('page-templates');
+  if (!root) return false;
+  const active = document.activeElement;
+  if (!active || active === document.body) return false;
+  if (!root.contains(active)) return false;
+  const tag = (active.tagName || '').toLowerCase();
+  return tag === 'input' || tag === 'select' || tag === 'textarea' || active.isContentEditable;
+}
+
 /* ── Drawer Wizard Content ─────────────────────────────────────────────── */
 function DrawerWizardContent() {
   const hasTmpl = !!state.prov.template;
@@ -2624,16 +2883,6 @@ function DrawerWizardContent() {
           <div class="os-ver">${t.sub}</div>
         </div>
       </button>`).join('')}
-    </div>
-    <div class="os-vmid-row">
-      ${TEMPLATES.map(t => {
-        const vmid = state.prov.templateIds[t.id] ?? 9000;
-        return `<div class="os-vmid-item">
-          <label>${t.label} VMID</label>
-          <input type="number" class="prov-tmpl-vmid-input" data-tmpl="${t.id}"
-            value="${vmid}" onclick="event.stopPropagation()">
-        </div>`;
-      }).join('')}
     </div>
   </div>`;
 
@@ -2795,7 +3044,8 @@ function Header() {
       <span class="header-brand-dot"></span>
     </div>
     <nav class="header-nav">
-      <button class="nav-tab active" data-action="switch-page" data-page="vms">Virtual Machines</button>
+      <button class="nav-tab${state.page === 'vms' ? ' active' : ''}" data-action="switch-page" data-page="vms">Virtual Machines</button>
+      <button class="nav-tab${state.page === 'templates' ? ' active' : ''}" data-action="switch-page" data-page="templates">Templates</button>
     </nav>
     <div class="header-right">
       <div class="header-status${connClass}">
@@ -2813,6 +3063,7 @@ function App() {
     ${Header()}
     <main class="main">
       ${VMsPage()}
+      ${TemplatesPage()}
     </main>
     ${BulkActionBar()}
   </div>
@@ -2926,6 +3177,27 @@ document.addEventListener('click', async (e) => {
   switch (action) {
     case 'switch-page':
       switchPage(el.dataset.page);
+      break;
+
+    case 'template-refresh':
+      await loadTemplateState();
+      break;
+
+    case 'template-select': {
+      const templateName = el.dataset.template;
+      if (!templateName) break;
+      state.templateMgr.selectedTemplate = templateName;
+      await loadTemplateState();
+      break;
+    }
+
+    case 'template-build':
+      await runTemplateBuild();
+      break;
+
+    case 'template-log-node':
+      state.templateMgr.selectedNode = el.dataset.node || '';
+      renderTemplatesPage();
       break;
 
     case 'open-drawer':
@@ -3084,9 +3356,9 @@ document.addEventListener('click', async (e) => {
       if (vmids.length === 0) break;
       
       if (act === 'delete') {
-        const confirmed = await confirm(
+        const confirmed = await showConfirm(
           'Delete VMs',
-          `Are you sure you want to delete ${vmids.length} VM${vmids.length !== 1 ? 's' : ''}? This action cannot be undone.`
+          `Are you sure you want to delete <strong>${vmids.length}</strong> VM${vmids.length !== 1 ? 's' : ''}? This action cannot be undone.`
         );
         if (!confirmed) break;
       }
@@ -3262,6 +3534,30 @@ document.addEventListener('click', async (e) => {
 });
 
 document.addEventListener('change', (e) => {
+  if (e.target.dataset.action === 'template-storage') {
+    const node = e.target.dataset.node;
+    const storageId = e.target.value;
+    if (!node || !storageId) return;
+    assignTemplateStorage(state.templateMgr.selectedTemplate || 'debian12-cloud', node, storageId)
+      .then(() => {
+        toast(`Storage set for ${node}`, 'success');
+        return loadTemplateState();
+      })
+      .catch(err => toast('Failed to set storage: ' + err.message, 'error'));
+    return;
+  }
+
+  if (e.target.dataset.action === 'template-build-node') {
+    state.templateMgr.buildNode = e.target.value;
+    if (!state.templateMgr.selectedNode) state.templateMgr.selectedNode = e.target.value;
+    const module = state.templateMgr;
+    const selectedTpl = (module.templates || []).find(t => t.name === module.selectedTemplate);
+    const nodeState = (selectedTpl?.nodeStates || []).find(ns => ns.node === module.buildNode);
+    module.vmidInput = nodeState?.vmid > 0 ? Number(nodeState.vmid) : '';
+    renderTemplatesPage();
+    return;
+  }
+
   if (e.target.id === 'filter-node') {
     state.filters.node = e.target.value;
     state.animateNextRender = true;
@@ -3272,27 +3568,26 @@ document.addEventListener('change', (e) => {
     state.animateNextRender = true;
     renderVMGrid();
   }
-  // Persist provision wizard input changes to state
-  if (e.target.classList.contains('prov-tmpl-vmid-input')) {
-    const tmpl = e.target.dataset.tmpl;
-    const val  = parseInt(e.target.value);
-    if (tmpl && !isNaN(val)) state.prov.templateIds[tmpl] = val;
-  }
   if (e.target.id === 'prov-cores')   { const v = +e.target.value; if (v > 0) state.prov.customCores  = v; }
   if (e.target.id === 'prov-memory')  { const v = +e.target.value; if (v > 0) state.prov.customMemory = v; }
   if (e.target.id === 'prov-disk-num'){ const v = +e.target.value; if (v > 0) state.prov.customDisk   = v + 'G'; }
 });
 
 document.addEventListener('input', (e) => {
+  if (e.target.dataset.action === 'template-vmid-input') {
+    const raw = String(e.target.value || '').trim();
+    if (raw === '') {
+      state.templateMgr.vmidInput = '';
+      return;
+    }
+    const n = Number(raw);
+    state.templateMgr.vmidInput = Number.isFinite(n) && n > 0 ? n : '';
+    return;
+  }
+
   if (e.target.id === 'search-input') {
     state.filters.search = e.target.value;
     renderVMGrid();
-  }
-  // Template VMID overrides
-  if (e.target.classList.contains('prov-tmpl-vmid-input')) {
-    const tmpl = e.target.dataset.tmpl;
-    const val  = +e.target.value;
-    if (val > 0) state.prov.templateIds[tmpl] = val;
   }
   // Custom profile — number inputs
   if (e.target.id === 'prov-cores')   { const v = +e.target.value; if (v > 0) state.prov.customCores  = v; }
@@ -3353,6 +3648,7 @@ function switchPage(page) {
   if (page === 'vms') state.animateNextRender = true;
   render();
   if (page === 'vms') loadVMs();
+  if (page === 'templates') loadTemplateState();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -3520,6 +3816,80 @@ function stopJobTimer() {
   }
 }
 
+async function loadTemplateState(opts = {}) {
+  const { forceRender = false } = opts;
+  const module = state.templateMgr;
+  module.loading = true;
+  try {
+    const q = encodeURIComponent(module.selectedTemplate || 'debian12-cloud');
+    const data = await api('GET', `/templates/state?template=${q}`);
+    module.selectedTemplate = data.selectedTemplate || module.selectedTemplate;
+    module.templates = data.templates || [];
+    module.nodes = data.nodes || [];
+    module.logsByNode = data.logsByNode || {};
+    module.clusterUsedVMIDs = data.clusterUsedVMIDs || [];
+    module.suggestedVmids = data.suggestedVmids || {};
+
+    const nodeNames = new Set((module.nodes || []).map(n => n.node));
+    if (!module.buildNode || !nodeNames.has(module.buildNode)) {
+      module.buildNode = module.nodes[0]?.node || '';
+    }
+    if (!module.selectedNode || !nodeNames.has(module.selectedNode)) {
+      module.selectedNode = module.buildNode || module.nodes[0]?.node || '';
+    }
+
+    const selectedTpl = module.templates.find(t => t.name === module.selectedTemplate);
+    const nodeState = (selectedTpl?.nodeStates || []).find(ns => ns.node === module.buildNode);
+    if (nodeState?.vmid > 0) {
+      module.vmidInput = Number(nodeState.vmid);
+    } else {
+      module.vmidInput = '';
+    }
+  } catch (err) {
+    toast('Failed to load template state: ' + err.message, 'error');
+  } finally {
+    module.loading = false;
+    if (state.page === 'templates' && (forceRender || !isTemplateInteractionActive())) {
+      renderTemplatesPage();
+    }
+  }
+}
+
+async function assignTemplateStorage(templateName, node, storageId) {
+  await api('POST', `/templates/${encodeURIComponent(templateName)}/nodes/${encodeURIComponent(node)}/storage`, {
+    storageId,
+  });
+}
+
+async function runTemplateBuild() {
+  const module = state.templateMgr;
+  const templateName = module.selectedTemplate || 'debian12-cloud';
+  const node = module.buildNode;
+  const vmid = Number(module.vmidInput);
+
+  if (!node) {
+    toast('Select a node before building', 'error');
+    return;
+  }
+
+  module.busy = true;
+  renderTemplatesPage();
+  try {
+    await api('POST', `/templates/${encodeURIComponent(templateName)}/build`, {
+      node,
+      vmid: Number.isFinite(vmid) && vmid > 0 ? vmid : 0,
+      image: 'debian-12-generic-amd64.qcow2',
+    });
+    toast(`Template build started on ${node}`, 'success');
+    await loadTemplateState({ forceRender: true });
+  } catch (err) {
+    toast('Build failed to start: ' + err.message, 'error');
+  } finally {
+    module.busy = false;
+    renderTemplatesPage();
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Config Loading
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -3593,7 +3963,6 @@ async function loadConfig() {
     const cfg = await api('GET', '/config');
     state.config = cfg;
     // Pre-populate provision wizard defaults from server config
-    if (cfg.templateId) state.prov.templateIds.debian12 = +cfg.templateId;
     if (cfg.vmStartId)  state.prov.vmStartId = +cfg.vmStartId;
     render();
   } catch (e) {
@@ -3619,6 +3988,11 @@ loadVMs();
 setInterval(() => {
   if (state.page === 'vms' && !document.hidden) loadVMs();
 }, 15000);
+
+// Auto-refresh template state every 3s when on Templates page
+setInterval(() => {
+  if (state.page === 'templates' && !document.hidden) loadTemplateState({ forceRender: false });
+}, 3000);
 
 </script>
 </body>

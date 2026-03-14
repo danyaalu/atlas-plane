@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/rand"
 	_ "embed"
 	"encoding/hex"
@@ -10,9 +11,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 )
 
 //go:embed web/index.html
@@ -56,6 +61,7 @@ type ProvisionParams struct {
 	VMCount    int    `json:"vmCount"`
 	VMName     string `json:"vmName"`
 	TemplateID int    `json:"templateId"`
+	Template   string `json:"templateName"`
 	Cores      int    `json:"cores"`
 	Memory     int    `json:"memory"`
 	DiskSize   string `json:"diskSize"`
@@ -75,6 +81,48 @@ type VMResultJSON struct {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// Template Source of Truth
+// ════════════════════════════════════════════════════════════════════════════
+
+const defaultTemplateName = "debian12-cloud"
+const templateSoTFile = "atlas-template-sot.json"
+
+type TemplateNodeState struct {
+	Node        string    `json:"node"`
+	VMID        int       `json:"vmid,omitempty"`
+	StorageID   string    `json:"storageId,omitempty"`
+	VolumeID    string    `json:"volumeId,omitempty"`
+	Status      string    `json:"status"`
+	Reachable   bool      `json:"reachable"`
+	LastMessage string    `json:"lastMessage,omitempty"`
+	LastError   string    `json:"lastError,omitempty"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+type TemplateState struct {
+	Name       string                        `json:"name"`
+	NodeStates map[string]*TemplateNodeState `json:"-"`
+}
+
+type TemplateLogEntry struct {
+	Timestamp time.Time `json:"timestamp"`
+	Template  string    `json:"template"`
+	Node      string    `json:"node"`
+	Stage     string    `json:"stage"`
+	Message   string    `json:"message"`
+}
+
+type templateStorageAssignRequest struct {
+	StorageID string `json:"storageId"`
+}
+
+type templateBuildRequest struct {
+	Node  string `json:"node"`
+	VMID  int    `json:"vmid"`
+	Image string `json:"image"`
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // Web Server
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -86,6 +134,12 @@ type WebServer struct {
 
 	mu   sync.Mutex
 	jobs map[string]*Job
+
+	templateMu      sync.Mutex
+	templates       map[string]*TemplateState
+	templateLogs    map[string][]TemplateLogEntry
+	activeTplBuilds map[string]bool
+	templateSoTPath string
 }
 
 func startWebServer(cfg Config, port string) {
@@ -100,6 +154,19 @@ func startWebServer(cfg Config, port string) {
 		pve:     pve,
 		pveHost: pveHost,
 		jobs:    make(map[string]*Job),
+		templates: map[string]*TemplateState{
+			defaultTemplateName: {
+				Name:       defaultTemplateName,
+				NodeStates: make(map[string]*TemplateNodeState),
+			},
+		},
+		templateLogs:    make(map[string][]TemplateLogEntry),
+		activeTplBuilds: make(map[string]bool),
+		templateSoTPath: templateSoTFile,
+	}
+
+	if err := ws.loadTemplateSoT(); err != nil {
+		fmt.Printf("WARN: unable to load template source of truth: %v\n", err)
 	}
 
 	mux := http.NewServeMux()
@@ -127,6 +194,12 @@ func startWebServer(cfg Config, port string) {
 	mux.HandleFunc("POST /api/provision", ws.handleProvision)
 	mux.HandleFunc("GET /api/jobs", ws.handleListJobs)
 	mux.HandleFunc("GET /api/jobs/{id}/events", ws.handleJobEvents)
+
+	// API — Template Management
+	mux.HandleFunc("GET /api/templates/state", ws.handleTemplateState)
+	mux.HandleFunc("POST /api/templates/{name}/nodes/{node}/storage", ws.handleAssignTemplateStorage)
+	mux.HandleFunc("POST /api/templates/{name}/build", ws.handleBuildTemplate)
+	mux.HandleFunc("GET /api/templates/logs/{node}", ws.handleTemplateNodeLogs)
 
 	fmt.Printf("\n✦  Atlas Plane — Web UI\n")
 	fmt.Printf("   http://localhost:%s\n", port)
@@ -194,7 +267,12 @@ func (ws *WebServer) handleStartVM(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "invalid VMID", 400)
 		return
 	}
-	if err := ws.pve.startVM(vmid); err != nil {
+	node, err := ws.pve.resolveVMNode(vmid)
+	if err != nil {
+		jsonError(w, err.Error(), 404)
+		return
+	}
+	if err := ws.pve.startVMOnNode(node, vmid); err != nil {
 		jsonError(w, err.Error(), 500)
 		return
 	}
@@ -207,7 +285,12 @@ func (ws *WebServer) handleStopVM(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "invalid VMID", 400)
 		return
 	}
-	if err := ws.pve.stopVM(vmid); err != nil {
+	node, err := ws.pve.resolveVMNode(vmid)
+	if err != nil {
+		jsonError(w, err.Error(), 404)
+		return
+	}
+	if err := ws.pve.stopVMOnNode(node, vmid); err != nil {
 		jsonError(w, err.Error(), 500)
 		return
 	}
@@ -220,7 +303,12 @@ func (ws *WebServer) handleRestartVM(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "invalid VMID", 400)
 		return
 	}
-	if err := ws.pve.rebootVM(vmid); err != nil {
+	node, err := ws.pve.resolveVMNode(vmid)
+	if err != nil {
+		jsonError(w, err.Error(), 404)
+		return
+	}
+	if err := ws.pve.rebootVMOnNode(node, vmid); err != nil {
 		jsonError(w, err.Error(), 500)
 		return
 	}
@@ -233,7 +321,12 @@ func (ws *WebServer) handleDeleteVM(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "invalid VMID", 400)
 		return
 	}
-	if err := ws.pve.deleteVM(vmid); err != nil {
+	node, err := ws.pve.resolveVMNode(vmid)
+	if err != nil {
+		jsonError(w, err.Error(), 404)
+		return
+	}
+	if err := ws.pve.deleteVMOnNode(node, vmid); err != nil {
 		jsonError(w, err.Error(), 500)
 		return
 	}
@@ -281,9 +374,6 @@ func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {
 	if params.VMCount > 0 {
 		cfg.VMCount = params.VMCount
 	}
-	if params.TemplateID > 0 {
-		cfg.TemplateID = params.TemplateID
-	}
 	if params.Cores > 0 {
 		cfg.Cores = params.Cores
 	}
@@ -307,6 +397,17 @@ func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {
 	}
 	if params.Node != "" {
 		cfg.Node = params.Node
+	}
+
+	if strings.TrimSpace(params.Template) != "" {
+		templateVMID, err := ws.templateVMIDForNode(strings.TrimSpace(params.Template), cfg.Node)
+		if err != nil {
+			jsonError(w, "template resolution failed: "+err.Error(), 400)
+			return
+		}
+		cfg.TemplateID = templateVMID
+	} else if params.TemplateID > 0 {
+		cfg.TemplateID = params.TemplateID
 	}
 
 	// Allocate VMIDs.
@@ -342,6 +443,32 @@ func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {
 		"jobId": job.ID,
 		"specs": specs,
 	})
+}
+
+func (ws *WebServer) templateVMIDForNode(templateName, nodeName string) (int, error) {
+	if strings.TrimSpace(templateName) == "" {
+		return 0, fmt.Errorf("template name is required")
+	}
+	if strings.TrimSpace(nodeName) == "" {
+		return 0, fmt.Errorf("node is required")
+	}
+
+	ws.templateMu.Lock()
+	defer ws.templateMu.Unlock()
+
+	t := ws.templates[templateName]
+	if t == nil {
+		return 0, fmt.Errorf("template %s not found in source of truth", templateName)
+	}
+	ns := t.NodeStates[nodeName]
+	if ns == nil {
+		return 0, fmt.Errorf("template %s is not configured for node %s", templateName, nodeName)
+	}
+	if ns.VMID <= 0 {
+		return 0, fmt.Errorf("template %s has no VMID configured for node %s", templateName, nodeName)
+	}
+
+	return ns.VMID, nil
 }
 
 func (ws *WebServer) handleListJobs(w http.ResponseWriter, r *http.Request) {
@@ -440,16 +567,931 @@ func (ws *WebServer) handleJobEvents(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (ws *WebServer) handleTemplateState(w http.ResponseWriter, r *http.Request) {
+	selected := strings.TrimSpace(r.URL.Query().Get("template"))
+	if selected == "" {
+		selected = defaultTemplateName
+	}
+
+	nodes, err := ws.pve.listNodes()
+	if err != nil {
+		jsonError(w, "failed to list nodes: "+err.Error(), 500)
+		return
+	}
+
+	usedSet, err := ws.pve.existingVMIDs()
+	if err != nil {
+		jsonError(w, "failed to list cluster VMIDs: "+err.Error(), 500)
+		return
+	}
+
+	used := make([]int, 0, len(usedSet))
+	for vmid := range usedSet {
+		used = append(used, vmid)
+	}
+	sort.Ints(used)
+
+	ws.templateMu.Lock()
+	ws.ensureTemplateLocked(selected, nodes)
+
+	templateNames := make([]string, 0, len(ws.templates))
+	for name := range ws.templates {
+		templateNames = append(templateNames, name)
+	}
+	sort.Strings(templateNames)
+
+	templates := make([]map[string]interface{}, 0, len(templateNames))
+	for _, name := range templateNames {
+		t := ws.templates[name]
+		ws.ensureTemplateLocked(name, nodes)
+
+		nodeStates := make([]map[string]interface{}, 0, len(t.NodeStates))
+		readyCount := 0
+		vmidsByNode := make(map[string]int, len(t.NodeStates))
+		for _, st := range t.NodeStates {
+			if st.Status == "Ready" {
+				readyCount++
+			}
+			if st.VMID > 0 {
+				vmidsByNode[st.Node] = st.VMID
+			}
+			nodeStates = append(nodeStates, map[string]interface{}{
+				"node":        st.Node,
+				"vmid":        st.VMID,
+				"storageId":   st.StorageID,
+				"volumeId":    st.VolumeID,
+				"status":      st.Status,
+				"reachable":   st.Reachable,
+				"lastMessage": st.LastMessage,
+				"lastError":   st.LastError,
+				"updatedAt":   st.UpdatedAt,
+			})
+		}
+		sort.Slice(nodeStates, func(i, j int) bool {
+			a, _ := nodeStates[i]["node"].(string)
+			b, _ := nodeStates[j]["node"].(string)
+			return a < b
+		})
+
+		templates = append(templates, map[string]interface{}{
+			"name":        t.Name,
+			"vmidsByNode": vmidsByNode,
+			"readyCount":  readyCount,
+			"outOfSync":   len(t.NodeStates) - readyCount,
+			"totalNodes":  len(t.NodeStates),
+			"nodeStates":  nodeStates,
+		})
+	}
+
+	logsCopy := make(map[string][]TemplateLogEntry, len(ws.templateLogs))
+	for node, logs := range ws.templateLogs {
+		copyLogs := make([]TemplateLogEntry, len(logs))
+		copy(copyLogs, logs)
+		logsCopy[node] = copyLogs
+	}
+	ws.templateMu.Unlock()
+
+	suggestedVMIDs := make(map[string]int, len(nodes))
+	for _, n := range nodes {
+		nodeName, _ := n["node"].(string)
+		if strings.TrimSpace(nodeName) == "" {
+			continue
+		}
+		suggestedVMID, vmidErr := ws.nextTemplateVMID(9000, selected, nodeName)
+		if vmidErr != nil {
+			jsonError(w, "failed to compute suggested VMID: "+vmidErr.Error(), 500)
+			return
+		}
+		suggestedVMIDs[nodeName] = suggestedVMID
+	}
+
+	nodeConfig := ws.collectTemplateNodeConfig(nodes, selected)
+
+	jsonOK(w, map[string]interface{}{
+		"selectedTemplate": selected,
+		"templates":        templates,
+		"nodes":            nodeConfig,
+		"clusterUsedVMIDs": used,
+		"suggestedVmids":   suggestedVMIDs,
+		"logsByNode":       logsCopy,
+	})
+}
+
+func (ws *WebServer) handleAssignTemplateStorage(w http.ResponseWriter, r *http.Request) {
+	templateName := strings.TrimSpace(r.PathValue("name"))
+	nodeName := strings.TrimSpace(r.PathValue("node"))
+	if templateName == "" || nodeName == "" {
+		jsonError(w, "template and node are required", 400)
+		return
+	}
+
+	var req templateStorageAssignRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid JSON: "+err.Error(), 400)
+		return
+	}
+	req.StorageID = strings.TrimSpace(req.StorageID)
+	if req.StorageID == "" {
+		jsonError(w, "storageId is required", 400)
+		return
+	}
+
+	storages, err := ws.pve.listNodeStorages(nodeName)
+	if err != nil {
+		jsonError(w, "failed to list node storages: "+err.Error(), 500)
+		return
+	}
+
+	storageOK := false
+	for _, st := range storages {
+		id, _ := st["storage"].(string)
+		if id == req.StorageID && storageIsNodeEligible(nodeName, st) {
+			storageOK = true
+			break
+		}
+	}
+	if !storageOK {
+		jsonError(w, "storage not available on selected node", 400)
+		return
+	}
+
+	nodes, err := ws.pve.listNodes()
+	if err != nil {
+		jsonError(w, "failed to list nodes: "+err.Error(), 500)
+		return
+	}
+
+	ws.templateMu.Lock()
+	t := ws.ensureTemplateLocked(templateName, nodes)
+	state := t.NodeStates[nodeName]
+	if state == nil {
+		state = &TemplateNodeState{Node: nodeName, Status: "Missing", UpdatedAt: time.Now()}
+		t.NodeStates[nodeName] = state
+	}
+	state.StorageID = req.StorageID
+	state.LastError = ""
+	state.LastMessage = "Target storage assigned"
+	state.UpdatedAt = time.Now()
+	ws.templateMu.Unlock()
+	if err := ws.saveTemplateSoT(); err != nil {
+		jsonError(w, "failed to persist template source of truth: "+err.Error(), 500)
+		return
+	}
+
+	jsonOK(w, map[string]string{"status": "ok"})
+}
+
+func (ws *WebServer) handleBuildTemplate(w http.ResponseWriter, r *http.Request) {
+	templateName := strings.TrimSpace(r.PathValue("name"))
+	if templateName == "" {
+		jsonError(w, "template name is required", 400)
+		return
+	}
+
+	var req templateBuildRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid JSON: "+err.Error(), 400)
+		return
+	}
+	req.Node = strings.TrimSpace(req.Node)
+	if req.Node == "" {
+		jsonError(w, "node is required", 400)
+		return
+	}
+	if req.VMID <= 0 {
+		next, err := ws.nextTemplateVMID(9000, templateName, req.Node)
+		if err != nil {
+			jsonError(w, "failed to compute next free VMID: "+err.Error(), 500)
+			return
+		}
+		req.VMID = next
+	}
+	if req.VMID < 9000 {
+		next, err := ws.nextTemplateVMID(9000, templateName, req.Node)
+		if err != nil {
+			jsonError(w, "failed to compute next free VMID: "+err.Error(), 500)
+			return
+		}
+		req.VMID = next
+	}
+	if req.Image == "" {
+		req.Image = "debian-12-generic-amd64.qcow2"
+	}
+
+	nodes, err := ws.pve.listNodes()
+	if err != nil {
+		jsonError(w, "failed to list nodes: "+err.Error(), 500)
+		return
+	}
+
+	isAvailable, err := ws.isTemplateVMIDAvailable(templateName, req.Node, req.VMID)
+	if err != nil {
+		jsonError(w, "failed to validate VMID: "+err.Error(), 500)
+		return
+	}
+	if !isAvailable {
+		jsonError(w, "vmid is already used in the cluster or reserved by another template/node", 409)
+		return
+	}
+
+	key := templateName + "::" + req.Node
+
+	ws.templateMu.Lock()
+	t := ws.ensureTemplateLocked(templateName, nodes)
+	ns := t.NodeStates[req.Node]
+	if ns == nil {
+		ns = &TemplateNodeState{Node: req.Node, Status: "Missing", UpdatedAt: time.Now()}
+		t.NodeStates[req.Node] = ns
+	}
+	if ns.StorageID == "" {
+		ws.templateMu.Unlock()
+		jsonError(w, "target storage is not configured for node", 400)
+		return
+	}
+	if ws.activeTplBuilds[key] {
+		ws.templateMu.Unlock()
+		jsonError(w, "a template build is already running for this node", 409)
+		return
+	}
+	ns.VMID = req.VMID
+	ws.activeTplBuilds[key] = true
+	ns.Status = "Downloading"
+	ns.LastError = ""
+	ns.LastMessage = "Template build started"
+	ns.UpdatedAt = time.Now()
+	ws.appendTemplateLogLocked(req.Node, TemplateLogEntry{
+		Timestamp: time.Now(),
+		Template:  templateName,
+		Node:      req.Node,
+		Stage:     "start",
+		Message:   fmt.Sprintf("Build started for %s (VMID %d)", templateName, req.VMID),
+	})
+	ws.templateMu.Unlock()
+	if err := ws.saveTemplateSoT(); err != nil {
+		jsonError(w, "failed to persist template source of truth: "+err.Error(), 500)
+		return
+	}
+
+	go ws.runTemplateBuild(templateName, req.Node, req.VMID, req.Image)
+
+	jsonOK(w, map[string]interface{}{
+		"status":   "started",
+		"template": templateName,
+		"node":     req.Node,
+		"vmid":     req.VMID,
+	})
+}
+
+func (ws *WebServer) handleTemplateNodeLogs(w http.ResponseWriter, r *http.Request) {
+	node := strings.TrimSpace(r.PathValue("node"))
+	if node == "" {
+		jsonError(w, "node is required", 400)
+		return
+	}
+
+	ws.templateMu.Lock()
+	logs := ws.templateLogs[node]
+	copyLogs := make([]TemplateLogEntry, len(logs))
+	copy(copyLogs, logs)
+	ws.templateMu.Unlock()
+
+	jsonOK(w, copyLogs)
+}
+
+func (ws *WebServer) runTemplateBuild(templateName, node string, vmid int, image string) {
+	key := templateName + "::" + node
+	imageURL := "https://cloud.debian.org/images/cloud/bookworm/latest/" + image
+	volumeID := ""
+
+	finish := func(finalStatus string, volumeID string, err error) {
+		ws.templateMu.Lock()
+		t := ws.templates[templateName]
+		if t == nil {
+			delete(ws.activeTplBuilds, key)
+			ws.templateMu.Unlock()
+			return
+		}
+		ns := t.NodeStates[node]
+		if ns == nil {
+			ns = &TemplateNodeState{Node: node}
+			t.NodeStates[node] = ns
+		}
+
+		ns.Status = finalStatus
+		ns.UpdatedAt = time.Now()
+		if volumeID != "" {
+			ns.VolumeID = volumeID
+		}
+		if err != nil {
+			ns.LastError = err.Error()
+			ns.LastMessage = "Build failed"
+			ws.appendTemplateLogLocked(node, TemplateLogEntry{
+				Timestamp: time.Now(),
+				Template:  templateName,
+				Node:      node,
+				Stage:     "failed",
+				Message:   err.Error(),
+			})
+		} else {
+			ns.LastError = ""
+			ns.LastMessage = "Template ready"
+			ws.appendTemplateLogLocked(node, TemplateLogEntry{
+				Timestamp: time.Now(),
+				Template:  templateName,
+				Node:      node,
+				Stage:     "ready",
+				Message:   fmt.Sprintf("Template %s is ready on %s", templateName, node),
+			})
+		}
+
+		delete(ws.activeTplBuilds, key)
+		ws.templateMu.Unlock()
+		_ = ws.saveTemplateSoT()
+	}
+
+	updateStage := func(status, stage, message string) {
+		ws.templateMu.Lock()
+		t := ws.templates[templateName]
+		if t == nil {
+			ws.templateMu.Unlock()
+			return
+		}
+		ns := t.NodeStates[node]
+		if ns == nil {
+			ns = &TemplateNodeState{Node: node, Status: "Missing", UpdatedAt: time.Now()}
+			t.NodeStates[node] = ns
+		}
+		ns.Status = status
+		ns.LastMessage = message
+		ns.LastError = ""
+		ns.UpdatedAt = time.Now()
+
+		ws.appendTemplateLogLocked(node, TemplateLogEntry{
+			Timestamp: time.Now(),
+			Template:  templateName,
+			Node:      node,
+			Stage:     stage,
+			Message:   message,
+		})
+		ws.templateMu.Unlock()
+		_ = ws.saveTemplateSoT()
+	}
+
+	ws.templateMu.Lock()
+	t := ws.templates[templateName]
+	storageID := ""
+	if t != nil {
+		if ns := t.NodeStates[node]; ns != nil {
+			storageID = ns.StorageID
+			if ns.VMID > 0 {
+				vmid = ns.VMID
+			}
+		}
+	}
+	ws.templateMu.Unlock()
+
+	if storageID == "" {
+		finish("Failed", "", fmt.Errorf("no storage configured for node %s", node))
+		return
+	}
+
+	appendLine := func(stage, line string) {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			return
+		}
+		ws.templateMu.Lock()
+		ws.appendTemplateLogLocked(node, TemplateLogEntry{
+			Timestamp: time.Now(),
+			Template:  templateName,
+			Node:      node,
+			Stage:     stage,
+			Message:   line,
+		})
+		ws.templateMu.Unlock()
+	}
+
+	host := ws.sshHostForNode(node)
+	runCmd := func(status, stage, message, command string) error {
+		updateStage(status, stage, message)
+		appendLine(stage, "$ "+command)
+		return ws.execSSHCommand(host, command, func(out string) {
+			appendLine(stage, out)
+		})
+	}
+
+	downloadCmd := fmt.Sprintf("cd /var/lib/vz/template/iso && if [ ! -f %s ]; then wget -nv -O %s %s; else echo 'Image already present: %s'; fi",
+		shellQuote(image), shellQuote(image), shellQuote(imageURL), image)
+	if err := runCmd("Downloading", "download", "Downloading Debian 12 cloud image", downloadCmd); err != nil {
+		finish("Failed", volumeID, err)
+		return
+	}
+
+	createCmd := fmt.Sprintf("qm create %d --name %s --memory 2048 --cores 2 --net0 virtio,bridge=vmbr0,tag=10", vmid, shellQuote(templateName))
+	if err := runCmd("Importing", "import", "Creating VM shell", createCmd); err != nil {
+		finish("Failed", volumeID, err)
+		return
+	}
+
+	importCmd := fmt.Sprintf("cd /var/lib/vz/template/iso && qm importdisk %d %s %s", vmid, shellQuote(image), shellQuote(storageID))
+	if err := runCmd("Importing", "import", "Importing disk into node-local storage", importCmd); err != nil {
+		finish("Failed", volumeID, err)
+		return
+	}
+	volumeID = fmt.Sprintf("%s:vm-%d-disk-0", storageID, vmid)
+
+	provisionCmds := []string{
+		fmt.Sprintf("qm set %d --scsihw virtio-scsi-pci --scsi0 %s", vmid, shellQuote(volumeID)),
+		fmt.Sprintf("qm set %d --ide2 %s", vmid, shellQuote(storageID+":cloudinit")),
+		fmt.Sprintf("qm set %d --boot c --bootdisk scsi0", vmid),
+		fmt.Sprintf("qm set %d --serial0 socket --vga serial0", vmid),
+		fmt.Sprintf("qm set %d --agent enabled=1", vmid),
+	}
+	for _, cmd := range provisionCmds {
+		if err := runCmd("Provisioning", "hardware", "Applying hardware and Cloud-Init settings", cmd); err != nil {
+			finish("Failed", volumeID, err)
+			return
+		}
+	}
+
+	if err := runCmd("Converting", "convert", "Converting VM to template", fmt.Sprintf("qm template %d", vmid)); err != nil {
+		finish("Failed", volumeID, err)
+		return
+	}
+
+	finish("Ready", volumeID, nil)
+}
+
+func (ws *WebServer) ensureTemplateLocked(name string, nodes []map[string]interface{}) *TemplateState {
+	t, ok := ws.templates[name]
+	if !ok {
+		t = &TemplateState{
+			Name:       name,
+			NodeStates: make(map[string]*TemplateNodeState),
+		}
+		ws.templates[name] = t
+	}
+
+	seen := make(map[string]bool)
+	for _, n := range nodes {
+		nodeName, _ := n["node"].(string)
+		if nodeName == "" {
+			continue
+		}
+		seen[nodeName] = true
+		reachable := n["status"] == "online"
+		ns, ok := t.NodeStates[nodeName]
+		if !ok {
+			ns = &TemplateNodeState{
+				Node:      nodeName,
+				Status:    "Missing",
+				Reachable: reachable,
+				UpdatedAt: time.Now(),
+			}
+			t.NodeStates[nodeName] = ns
+		} else {
+			ns.Reachable = reachable
+		}
+	}
+
+	for nodeName := range t.NodeStates {
+		if !seen[nodeName] {
+			delete(t.NodeStates, nodeName)
+		}
+	}
+
+	return t
+}
+
+type templateSoTPayload struct {
+	Version   int                           `json:"version"`
+	Templates map[string]*templateSoTRecord `json:"templates"`
+}
+
+type templateSoTRecord struct {
+	Name       string                        `json:"name"`
+	GlobalVMID int                           `json:"globalVmid,omitempty"`
+	NodeStates map[string]*TemplateNodeState `json:"nodeStates"`
+}
+
+func (ws *WebServer) loadTemplateSoT() error {
+	data, err := os.ReadFile(ws.templateSoTPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	var payload templateSoTPayload
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return fmt.Errorf("decode %s: %w", ws.templateSoTPath, err)
+	}
+
+	if payload.Templates == nil {
+		payload.Templates = make(map[string]*templateSoTRecord)
+	}
+
+	ws.templateMu.Lock()
+	for name, rec := range payload.Templates {
+		if rec == nil {
+			continue
+		}
+
+		t := &TemplateState{
+			Name:       rec.Name,
+			NodeStates: rec.NodeStates,
+		}
+		if t.Name == "" {
+			t.Name = name
+		}
+		if t.NodeStates == nil {
+			t.NodeStates = make(map[string]*TemplateNodeState)
+		}
+		for nodeName, nodeState := range t.NodeStates {
+			if nodeState == nil {
+				t.NodeStates[nodeName] = &TemplateNodeState{Node: nodeName, Status: "Missing", UpdatedAt: time.Now()}
+				continue
+			}
+			if nodeState.Node == "" {
+				nodeState.Node = nodeName
+			}
+			if nodeState.Status == "" {
+				nodeState.Status = "Missing"
+			}
+			if nodeState.VMID <= 0 && rec.GlobalVMID > 0 {
+				nodeState.VMID = rec.GlobalVMID
+			}
+		}
+		ws.templates[name] = t
+	}
+	if _, ok := ws.templates[defaultTemplateName]; !ok {
+		ws.templates[defaultTemplateName] = &TemplateState{
+			Name:       defaultTemplateName,
+			NodeStates: make(map[string]*TemplateNodeState),
+		}
+	}
+	ws.templateMu.Unlock()
+
+	return nil
+}
+
+func (ws *WebServer) saveTemplateSoT() error {
+	ws.templateMu.Lock()
+	templates := make(map[string]*templateSoTRecord, len(ws.templates))
+	for name, t := range ws.templates {
+		if t == nil {
+			continue
+		}
+		clone := &templateSoTRecord{
+			Name:       t.Name,
+			NodeStates: make(map[string]*TemplateNodeState, len(t.NodeStates)),
+		}
+		for nodeName, nodeState := range t.NodeStates {
+			if nodeState == nil {
+				continue
+			}
+			copyState := *nodeState
+			clone.NodeStates[nodeName] = &copyState
+		}
+		templates[name] = clone
+	}
+	ws.templateMu.Unlock()
+
+	payload := templateSoTPayload{
+		Version:   1,
+		Templates: templates,
+	}
+
+	jsonBytes, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	tmp := ws.templateSoTPath + ".tmp"
+	if err := os.WriteFile(tmp, jsonBytes, 0644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, ws.templateSoTPath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ws *WebServer) appendTemplateLogLocked(node string, entry TemplateLogEntry) {
+	logs := append(ws.templateLogs[node], entry)
+	if len(logs) > 500 {
+		logs = logs[len(logs)-500:]
+	}
+	ws.templateLogs[node] = logs
+}
+
+func (ws *WebServer) collectTemplateNodeConfig(nodes []map[string]interface{}, templateName string) []map[string]interface{} {
+	ws.templateMu.Lock()
+	t := ws.templates[templateName]
+	if t == nil {
+		t = ws.ensureTemplateLocked(templateName, nodes)
+	}
+
+	assignedByNode := make(map[string]string, len(t.NodeStates))
+	for node, ns := range t.NodeStates {
+		assignedByNode[node] = ns.StorageID
+	}
+	ws.templateMu.Unlock()
+
+	response := make([]map[string]interface{}, 0, len(nodes))
+	for _, n := range nodes {
+		nodeName, _ := n["node"].(string)
+		if nodeName == "" {
+			continue
+		}
+		reachable := n["status"] == "online"
+		assignedStorage := assignedByNode[nodeName]
+
+		storages, _ := ws.pve.listNodeStorages(nodeName)
+		storageRows := make([]map[string]interface{}, 0, len(storages))
+		for _, st := range storages {
+			if !storageIsNodeEligible(nodeName, st) {
+				continue
+			}
+			storageRows = append(storageRows, map[string]interface{}{
+				"id":      st["storage"],
+				"type":    st["type"],
+				"content": st["content"],
+				"active":  st["active"],
+				"enabled": st["enabled"],
+			})
+		}
+
+		configured := reachable && assignedStorage != ""
+
+		response = append(response, map[string]interface{}{
+			"node":            nodeName,
+			"status":          n["status"],
+			"reachable":       reachable,
+			"assignedStorage": assignedStorage,
+			"configured":      configured,
+			"storages":        storageRows,
+		})
+	}
+
+	sort.Slice(response, func(i, j int) bool {
+		a, _ := response[i]["node"].(string)
+		b, _ := response[j]["node"].(string)
+		return a < b
+	})
+
+	return response
+}
+
+func storageIsNodeEligible(node string, storage map[string]interface{}) bool {
+	if !storageBelongsToNode(node, storage) {
+		return false
+	}
+
+	if shared, ok := boolish(storage["shared"]); ok && shared {
+		return false
+	}
+	if enabled, ok := boolish(storage["enabled"]); ok && !enabled {
+		return false
+	}
+	if active, ok := boolish(storage["active"]); ok && !active {
+		return false
+	}
+
+	return true
+}
+
+func storageBelongsToNode(node string, storage map[string]interface{}) bool {
+	if node == "" {
+		return false
+	}
+
+	if nodesCSV, ok := storage["nodes"].(string); ok {
+		nodesCSV = strings.TrimSpace(nodesCSV)
+		if nodesCSV != "" {
+			for _, part := range strings.Split(nodesCSV, ",") {
+				if strings.TrimSpace(part) == node {
+					return true
+				}
+			}
+			return false
+		}
+	}
+
+	if nodeField, ok := storage["node"].(string); ok {
+		nodeField = strings.TrimSpace(nodeField)
+		if nodeField != "" && nodeField != node {
+			return false
+		}
+	}
+
+	return true
+}
+
+func boolish(v interface{}) (bool, bool) {
+	switch value := v.(type) {
+	case bool:
+		return value, true
+	case float64:
+		return value != 0, true
+	case int:
+		return value != 0, true
+	case int64:
+		return value != 0, true
+	case string:
+		s := strings.TrimSpace(strings.ToLower(value))
+		switch s {
+		case "1", "true", "yes", "on":
+			return true, true
+		case "0", "false", "no", "off", "":
+			return false, true
+		default:
+			if n, err := strconv.Atoi(s); err == nil {
+				return n != 0, true
+			}
+		}
+	}
+
+	return false, false
+}
+
+func (ws *WebServer) isTemplateVMIDAvailable(templateName, nodeName string, vmid int) (bool, error) {
+	used, err := ws.pve.existingVMIDs()
+	if err != nil {
+		return false, err
+	}
+	if used[vmid] {
+		return false, nil
+	}
+
+	ws.templateMu.Lock()
+	defer ws.templateMu.Unlock()
+	for name, t := range ws.templates {
+		if t == nil {
+			continue
+		}
+		for node, ns := range t.NodeStates {
+			if ns == nil || ns.VMID <= 0 {
+				continue
+			}
+			if name == templateName && node == nodeName {
+				continue
+			}
+			if ns.VMID == vmid {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
+
+func (ws *WebServer) nextTemplateVMID(start int, templateName, nodeName string) (int, error) {
+	used, err := ws.pve.existingVMIDs()
+	if err != nil {
+		return 0, err
+	}
+
+	reserved := map[int]bool{}
+	ws.templateMu.Lock()
+	for name, t := range ws.templates {
+		if t == nil {
+			continue
+		}
+		for node, ns := range t.NodeStates {
+			if ns == nil || ns.VMID <= 0 {
+				continue
+			}
+			if name == templateName && node == nodeName {
+				continue
+			}
+			reserved[ns.VMID] = true
+		}
+	}
+	if current, ok := ws.templates[templateName]; ok && current != nil {
+		if ns := current.NodeStates[nodeName]; ns != nil && ns.VMID > 0 {
+			ws.templateMu.Unlock()
+			return ns.VMID, nil
+		}
+	}
+	ws.templateMu.Unlock()
+
+	candidate := start
+	for {
+		if candidate > 999999999 {
+			return 0, fmt.Errorf("VMID space exhausted")
+		}
+		if !used[candidate] && !reserved[candidate] {
+			return candidate, nil
+		}
+		candidate++
+	}
+}
+
+func (ws *WebServer) sshHostForNode(node string) string {
+	if node == "" {
+		return ws.pveHost
+	}
+	if node == ws.cfg.Node && ws.pveHost != "" {
+		return ws.pveHost
+	}
+	return node
+}
+
+func (ws *WebServer) execSSHCommand(host, command string, onLine func(string)) error {
+	if host == "" {
+		return fmt.Errorf("empty SSH host")
+	}
+
+	keyBytes, err := os.ReadFile(ws.cfg.PVESSHKey)
+	if err != nil {
+		return fmt.Errorf("read SSH key %s: %w", ws.cfg.PVESSHKey, err)
+	}
+	signer, err := ssh.ParsePrivateKey(keyBytes)
+	if err != nil {
+		return fmt.Errorf("parse SSH key: %w", err)
+	}
+
+	clientCfg := &ssh.ClientConfig{
+		User:            ws.cfg.PVESSHUser,
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         15 * time.Second,
+	}
+
+	client, err := ssh.Dial("tcp", host+":"+ws.cfg.PVESSHPort, clientCfg)
+	if err != nil {
+		return fmt.Errorf("ssh dial %s: %w", host, err)
+	}
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		return fmt.Errorf("ssh session: %w", err)
+	}
+	defer session.Close()
+
+	stdout, err := session.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("stdout pipe: %w", err)
+	}
+	stderr, err := session.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("stderr pipe: %w", err)
+	}
+
+	if err := session.Start(command); err != nil {
+		return fmt.Errorf("ssh start: %w", err)
+	}
+
+	var wg sync.WaitGroup
+	readPipe := func(scanner *bufio.Scanner) {
+		defer wg.Done()
+		for scanner.Scan() {
+			if onLine != nil {
+				onLine(scanner.Text())
+			}
+		}
+	}
+
+	stdoutScanner := bufio.NewScanner(stdout)
+	stderrScanner := bufio.NewScanner(stderr)
+	stdoutScanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	stderrScanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+
+	wg.Add(2)
+	go readPipe(stdoutScanner)
+	go readPipe(stderrScanner)
+
+	err = session.Wait()
+	wg.Wait()
+	if err != nil {
+		return fmt.Errorf("ssh command failed: %w", err)
+	}
+
+	return nil
+}
+
+func shellQuote(value string) string {
+	if value == "" {
+		return "''"
+	}
+	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
+}
+
 // ── Job Runner ───────────────────────────────────────────────────────────
 
 func (ws *WebServer) runJob(job *Job, cfg Config, specs []VMSpec) {
 	var wg sync.WaitGroup
+	pveClient := newProxmoxClient(cfg)
+	pveHost := ws.sshHostForNode(cfg.Node)
 
 	for i, spec := range specs {
 		wg.Add(1)
 		go func(idx int, s VMSpec) {
 			defer wg.Done()
-			job.Results[idx] = provisionVM(cfg, ws.pve, ws.pveHost, s, func(e ProvisionEvent) {
+			job.Results[idx] = provisionVM(cfg, pveClient, pveHost, s, func(e ProvisionEvent) {
 				job.mu.Lock()
 				job.Events = append(job.Events, e)
 				// Copy listeners slice to avoid holding lock during send.
