@@ -1821,6 +1821,15 @@ function esc(s) {
   return d.innerHTML;
 }
 
+function sanitizeVMName(value, trimEdgeDashes = true) {
+  const sanitized = (value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-');
+  return trimEdgeDashes ? sanitized.replace(/^-|-$/g, '') : sanitized;
+}
+
 function formatBytes(b) {
   if (!b || b === 0) return '0 B';
   if (b >= 1073741824) return (b / 1073741824).toFixed(1) + ' GiB';
@@ -2497,10 +2506,11 @@ function getProvisionParams() {
   const prof = PROFILES.find(p => p.id === state.prov.profile) || PROFILES[0];
   const isCustom = state.prov.profile === 'custom';
   const templateName = PROVISION_TEMPLATE_NAMES[tmpl.id] || `${tmpl.id}-cloud`;
+  const normalizedVMName = sanitizeVMName(state.prov.vmName, true);
   return {
     templateName,
     vmCount:    state.prov.vmCount,
-    vmName:     state.prov.vmName,
+    vmName:     normalizedVMName,
     cores:      isCustom ? state.prov.customCores  : prof.cores,
     memory:     isCustom ? state.prov.customMemory : prof.memory,
     diskSize:   isCustom ? state.prov.customDisk   : prof.disk,
@@ -2517,6 +2527,7 @@ function ProvisionWizard() {
   const hasProf = !!state.prov.profile;
   const isLaunching = !!(state.activeJobId && !state.jobDone);
   const isCustom = state.prov.profile === 'custom';
+  const previewVMName = sanitizeVMName(state.prov.vmName, true);
 
   /* ── Block 1: Operating System ─────────────────────────────────────── */
   const tmplBlock = `
@@ -2968,9 +2979,9 @@ function DrawerWizardContent() {
       <input type="text" id="prov-vm-name" value="${esc(state.prov.vmName)}"
         placeholder="e.g. my-vm" maxlength="40" style="font-family:inherit">
     </div>
-    ${state.prov.vmCount > 1 && state.prov.vmName
+    ${state.prov.vmCount > 1 && previewVMName
       ? `<div id="prov-vm-name-hint" style="font-size:0.78rem;color:var(--text-3);margin-top:4px">
-           VMs will be named <strong>${esc(state.prov.vmName)}-01</strong> … <strong>${esc(state.prov.vmName)}-${String(state.prov.vmCount).padStart(2,'0')}</strong>
+           VMs will be named <strong>${esc(previewVMName)}-01</strong> … <strong>${esc(previewVMName)}-${String(state.prov.vmCount).padStart(2,'0')}</strong>
          </div>`
       : `<div id="prov-vm-name-hint" style="font-size:0.78rem;color:var(--text-3);margin-top:4px"></div>`}
   </div>`;
@@ -3621,13 +3632,14 @@ document.addEventListener('input', (e) => {
   }
   // VM Name
   if (e.target.id === 'prov-vm-name') {
-    state.prov.vmName = e.target.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    state.prov.vmName = sanitizeVMName(e.target.value, false);
     e.target.value = state.prov.vmName;
     // re-render just the preview hint without full redraw
+    const previewVMName = sanitizeVMName(state.prov.vmName, true);
     const hint = document.getElementById('prov-vm-name-hint');
     if (hint) {
-      hint.innerHTML = state.prov.vmCount > 1 && state.prov.vmName
-        ? `VMs will be named <strong>${esc(state.prov.vmName)}-01</strong> … <strong>${esc(state.prov.vmName)}-${String(state.prov.vmCount).padStart(2,'0')}</strong>`
+      hint.innerHTML = state.prov.vmCount > 1 && previewVMName
+        ? `VMs will be named <strong>${esc(previewVMName)}-01</strong> … <strong>${esc(previewVMName)}-${String(state.prov.vmCount).padStart(2,'0')}</strong>`
         : '';
     }
   }
