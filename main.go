@@ -19,6 +19,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/tls"
@@ -41,6 +42,53 @@ import (
 
 	"golang.org/x/crypto/ssh"
 )
+
+func loadDotEnv(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		if strings.HasPrefix(line, "export ") {
+			line = strings.TrimSpace(strings.TrimPrefix(line, "export "))
+		}
+
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		if key == "" {
+			continue
+		}
+
+		if len(value) >= 2 {
+			if (value[0] == '\'' && value[len(value)-1] == '\'') || (value[0] == '"' && value[len(value)-1] == '"') {
+				value = value[1 : len(value)-1]
+			}
+		}
+
+		if _, exists := os.LookupEnv(key); exists {
+			continue
+		}
+		_ = os.Setenv(key, value)
+	}
+
+	return scanner.Err()
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Configuration
@@ -827,17 +875,25 @@ func provisionVM(cfg Config, pve *ProxmoxClient, pveHost string, spec VMSpec, em
 // ════════════════════════════════════════════════════════════════════════════
 
 func main() {
-	cfg := loadConfig()
-
-	if cfg.APIToken == "" {
-		fatalf("PROXMOX_API_TOKEN is required.\n  Format: USER@REALM!TOKENID=SECRET\n  Example: root@pam!atlas=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+	envPath := envOr("ATLAS_ENV_FILE", ".env")
+	if err := loadDotEnv(envPath); err != nil {
+		fatalf("failed to load %s: %v", envPath, err)
 	}
+
+	cfg := loadConfig()
 
 	// Subcommand: "serve" starts the web UI.
 	if len(os.Args) > 1 && os.Args[1] == "serve" {
+		if cfg.APIToken == "" {
+			fmt.Println("WARN: PROXMOX_API_TOKEN is not set. API endpoints will fail until configured, but the web UI will still start.")
+		}
 		port := envOr("ATLAS_WEB_PORT", "8080")
 		startWebServer(cfg, port)
 		return
+	}
+
+	if cfg.APIToken == "" {
+		fatalf("PROXMOX_API_TOKEN is required.\n  Format: USER@REALM!TOKENID=SECRET\n  Example: root@pam!atlas=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
 	}
 
 	// CLI mode — provision VMs from the command line.
