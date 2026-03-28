@@ -111,6 +111,10 @@ Place `ca_ed25519` in the project directory (or set `CA_KEY_PATH`).
 
 ## Environment Variables
 
+Atlas Plane automatically loads variables from a `.env` file in the project root.
+
+You can also point to a custom env file by setting `ATLAS_ENV_FILE`.
+
 | Variable | Default | Description |
 |---|---|---|
 | `PROXMOX_API_TOKEN` | *(required)* | `USER@REALM!TOKENID=SECRET` |
@@ -139,13 +143,23 @@ Place `ca_ed25519` in the project directory (or set `CA_KEY_PATH`).
 # Install dependencies
 go mod tidy
 
-# Provision a single VM (default)
-export PROXMOX_API_TOKEN="root@pam!atlas=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-export PROXMOX_URL="https://192.168.1.100:8006"
+# Create .env in the project root (example)
+cat > .env <<'EOF'
+PROXMOX_API_TOKEN=root@pam!atlas=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+PROXMOX_URL=https://192.168.1.100:8006
+PROXMOX_NODE=pve
+TEMPLATE_VMID=9000
+VM_COUNT=1
+EOF
+
+# Provision a single VM (default VM_COUNT=1)
 go run main.go
 
 # Provision 3 VMs in parallel
 VM_COUNT=3 go run main.go
+
+# Use a custom env file
+ATLAS_ENV_FILE=.env.prod go run main.go
 ```
 
 ### Example Output (3 VMs)

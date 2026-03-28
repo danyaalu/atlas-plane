@@ -11,7 +11,7 @@
 //  2. Prepare a Debian 12 Cloud-Init template VM in Proxmox (with qemu-guest-agent).
 //  3. Enable "snippets" content type on your Proxmox storage (e.g. "local").
 //  4. Create a Proxmox API token with sufficient privileges.
-//  5. Export the required environment variables (see README.md).
+//  5. Set required environment variables in .env (see README.md).
 //
 // Run:
 //
@@ -39,6 +39,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/joho/godotenv"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -113,6 +114,27 @@ func envIntOr(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+func loadEnvFile() {
+	envFile := os.Getenv("ATLAS_ENV_FILE")
+	if envFile == "" {
+		envFile = ".env"
+	}
+
+	if _, err := os.Stat(envFile); err != nil {
+		if os.IsNotExist(err) {
+			if os.Getenv("ATLAS_ENV_FILE") != "" {
+				fatalf("ATLAS_ENV_FILE points to a missing file: %s", envFile)
+			}
+			return
+		}
+		fatalf("Cannot access env file %q: %v", envFile, err)
+	}
+
+	if err := godotenv.Load(envFile); err != nil {
+		fatalf("Failed to load env file %q: %v", envFile, err)
+	}
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -827,6 +849,7 @@ func provisionVM(cfg Config, pve *ProxmoxClient, pveHost string, spec VMSpec, em
 // ════════════════════════════════════════════════════════════════════════════
 
 func main() {
+	loadEnvFile()
 	cfg := loadConfig()
 
 	if cfg.APIToken == "" {
