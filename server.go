@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -128,9 +126,10 @@ type templateBuildRequest struct {
 
 // WebServer holds the shared state for the HTTP handlers.
 type WebServer struct {
-	cfg     Config
-	pve     *ProxmoxClient
-	pveHost string
+	cfg      Config
+	pve      *ProxmoxClient
+	pveHost  string
+	keyVault *SSHKeyVault
 
 	mu   sync.Mutex
 	jobs map[string]*Job
@@ -150,10 +149,11 @@ func startWebServer(cfg Config, port string) {
 	}
 
 	ws := &WebServer{
-		cfg:     cfg,
-		pve:     pve,
-		pveHost: pveHost,
-		jobs:    make(map[string]*Job),
+		cfg:      cfg,
+		pve:      pve,
+		pveHost:  pveHost,
+		keyVault: sshKeyVault,
+		jobs:     make(map[string]*Job),
 		templates: map[string]*TemplateState{
 			defaultTemplateName: {
 				Name:       defaultTemplateName,
@@ -189,6 +189,7 @@ func startWebServer(cfg Config, port string) {
 
 	// API — Keys (download provisioned SSH keys)
 	mux.HandleFunc("GET /api/keys/{filename}", ws.handleDownloadKey)
+	mux.HandleFunc("GET /api/vms/{id}/ssh-key", ws.handleDownloadVMKey)
 
 	// API — Provisioning
 	mux.HandleFunc("POST /api/provision", ws.handleProvision)
@@ -258,6 +259,24 @@ func (ws *WebServer) handleListVMs(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "failed to list VMs: "+err.Error(), 500)
 		return
 	}
+
+	if ws.keyVault != nil {
+		for _, vm := range vms {
+			rawVMID, ok := vm["vmid"].(float64)
+			if !ok {
+				continue
+			}
+			vmid := int(rawVMID)
+			hasKey := ws.keyVault.HasKeyForVM(vmid)
+			vm["hasSshKey"] = hasKey
+			if hasKey {
+				if keyName := ws.keyVault.KeyFileNameForVM(vmid); keyName != "" {
+					vm["sshKeyFile"] = keyName
+				}
+			}
+		}
+	}
+
 	jsonOK(w, vms)
 }
 
@@ -335,31 +354,63 @@ func (ws *WebServer) handleDeleteVM(w http.ResponseWriter, r *http.Request) {
 
 // ── Key Download ─────────────────────────────────────────────────────────
 
-// validKeyName allows only the filenames produced by generateSSHCert:
-//
-//	vmname_key  or  vmname_key-cert.pub
-//
-// This prevents path traversal and limits exposure to only Atlas-generated files.
-var validKeyName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*_key(-cert\.pub)?$`)
-
 func (ws *WebServer) handleDownloadKey(w http.ResponseWriter, r *http.Request) {
-	filename := filepath.Base(r.PathValue("filename"))
-	if !validKeyName.MatchString(filename) {
+	if ws.keyVault == nil {
+		jsonError(w, "key vault is not initialized", 500)
+		return
+	}
+
+	filename := strings.TrimSpace(r.PathValue("filename"))
+	if filename == "" || strings.Contains(filename, "/") || strings.Contains(filename, `\\`) {
 		jsonError(w, "invalid filename", 400)
 		return
 	}
 
-	data, err := os.ReadFile(filename)
+	name, data, err := ws.keyVault.GetPrivateKeyByFilename(filename)
 	if err != nil {
-		jsonError(w, "key not found", 404)
+		if os.IsNotExist(err) {
+			jsonError(w, "key not found", 404)
+			return
+		}
+		jsonError(w, "failed to read key", 500)
 		return
 	}
 
+	ws.writeKeyDownload(w, name, data)
+}
+
+func (ws *WebServer) handleDownloadVMKey(w http.ResponseWriter, r *http.Request) {
+	if ws.keyVault == nil {
+		jsonError(w, "key vault is not initialized", 500)
+		return
+	}
+
+	vmid, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || vmid <= 0 {
+		jsonError(w, "invalid VMID", 400)
+		return
+	}
+
+	name, data, err := ws.keyVault.GetPrivateKeyByVMID(vmid)
+	if err != nil {
+		if os.IsNotExist(err) {
+			jsonError(w, "key not found for VM", 404)
+			return
+		}
+		jsonError(w, "failed to read key", 500)
+		return
+	}
+
+	ws.writeKeyDownload(w, name, data)
+}
+
+func (ws *WebServer) writeKeyDownload(w http.ResponseWriter, filename string, data []byte) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {

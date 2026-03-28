@@ -66,6 +66,7 @@ type Config struct {
 	DiskDevice   string        // Proxmox disk identifier to resize (e.g. scsi0)
 	DiskSize     string        // Target disk size after clone (e.g. 5G)
 	VMName       string        // Optional base name for provisioned VMs
+	KeyVaultDir  string        // Encrypted SSH key vault directory
 
 	// SSH access to the Proxmox host (for writing snippet files).
 	PVESSHUser string
@@ -94,10 +95,26 @@ func loadConfig() Config {
 		DiskDevice:   envOr("VM_DISK_DEVICE", "scsi0"),
 		DiskSize:     envOr("VM_DISK_SIZE", "5G"),
 		VMName:       os.Getenv("VM_NAME"),
+		KeyVaultDir:  envOr("ATLAS_SSH_KEY_DIR", ".atlas/keys"),
 		PVESSHUser:   envOr("PVE_SSH_USER", "root"),
 		PVESSHKey:    envOr("PVE_SSH_KEY", defaultSSHKey),
 		PVESSHPort:   envOr("PVE_SSH_PORT", "22"),
 	}
+}
+
+var sshKeyVault *SSHKeyVault
+
+func initSSHKeyVault(cfg Config) error {
+	if sshKeyVault != nil {
+		return nil
+	}
+
+	vault, err := newSSHKeyVault(cfg.KeyVaultDir)
+	if err != nil {
+		return err
+	}
+	sshKeyVault = vault
+	return nil
 }
 
 func envOr(key, fallback string) string {
@@ -377,7 +394,7 @@ type SSHCertResult struct {
 // generateSSHCert creates a fresh Ed25519 key pair, signs it with the CA, and
 // writes the private key and certificate to disk. Each VM gets its own key
 // pair under a unique filename derived from the VM name.
-func generateSSHCert(caKeyPath, vmName string, principals []string, validity time.Duration) (*SSHCertResult, error) {
+func generateSSHCert(caKeyPath string, vmID int, vmName string, principals []string, validity time.Duration) (*SSHCertResult, error) {
 	caRaw, err := os.ReadFile(caKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("read CA key %s: %w", caKeyPath, err)
@@ -425,27 +442,25 @@ func generateSSHCert(caKeyPath, vmName string, principals []string, validity tim
 		return nil, fmt.Errorf("sign cert: %w", err)
 	}
 
+	if sshKeyVault == nil {
+		return nil, fmt.Errorf("ssh key vault is not initialized")
+	}
+
 	privBlock, err := ssh.MarshalPrivateKey(priv, "")
 	if err != nil {
 		return nil, fmt.Errorf("marshal private key: %w", err)
 	}
 
-	// Each VM gets its own key file so parallel provisioning doesn't clobber.
-	privPath := fmt.Sprintf("./%s_key", vmName)
-	certPath := fmt.Sprintf("./%s_key-cert.pub", vmName)
-
-	if err := os.WriteFile(privPath, pem.EncodeToMemory(privBlock), 0600); err != nil {
-		return nil, fmt.Errorf("write private key: %w", err)
-	}
-	if err := os.WriteFile(certPath, ssh.MarshalAuthorizedKey(cert), 0644); err != nil {
-		return nil, fmt.Errorf("write cert: %w", err)
+	privFilename, err := sshKeyVault.StorePrivateKey(vmID, vmName, pem.EncodeToMemory(privBlock))
+	if err != nil {
+		return nil, fmt.Errorf("store private key: %w", err)
 	}
 
 	return &SSHCertResult{
 		CAPubKey:    caPubKeyStr,
 		UserPubKey:  userPubStr,
-		PrivKeyFile: privPath,
-		CertFile:    certPath,
+		PrivKeyFile: privFilename,
+		CertFile:    strings.TrimSuffix(privFilename, "_key") + "_key-cert.pub",
 	}, nil
 }
 
@@ -800,7 +815,7 @@ func provisionVM(cfg Config, pve *ProxmoxClient, pveHost string, spec VMSpec, em
 
 	// 4. SSH cert + Cloud-Init
 	send("generating_cert", "Generating SSH certificate…")
-	certResult, err := generateSSHCert(cfg.CAKeyPath, spec.Name, []string{cfg.User}, cfg.CertValidity)
+	certResult, err := generateSSHCert(cfg.CAKeyPath, spec.VMID, spec.Name, []string{cfg.User}, cfg.CertValidity)
 	if err != nil {
 		return fail("ssh cert: %v", err)
 	}
@@ -851,6 +866,10 @@ func provisionVM(cfg Config, pve *ProxmoxClient, pveHost string, spec VMSpec, em
 func main() {
 	loadEnvFile()
 	cfg := loadConfig()
+
+	if err := initSSHKeyVault(cfg); err != nil {
+		fatalf("Failed to initialize SSH key vault: %v", err)
+	}
 
 	if cfg.APIToken == "" {
 		fatalf("PROXMOX_API_TOKEN is required.\n  Format: USER@REALM!TOKENID=SECRET\n  Example: root@pam!atlas=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")

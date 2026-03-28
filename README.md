@@ -4,6 +4,8 @@ A Go CLI that fully automates VM provisioning on a Proxmox homelab: clone a gold
 
 Supports **parallel provisioning** — spin up multiple VMs at once with `VM_COUNT=N`. Each VM gets a unique random name (e.g. `swift-nexus-a3f1b2`) and its own SSH key pair.
 
+Provisioned private keys are now stored in an encrypted local key vault (`.atlas/keys` by default) instead of the repository root, and can be re-downloaded later from the VM panel in the web UI.
+
 ## Architecture
 
 ```
@@ -128,6 +130,7 @@ You can also point to a custom env file by setting `ATLAS_ENV_FILE`.
 | `VM_DISK_DEVICE` | `scsi0` | Proxmox disk identifier to resize |
 | `VM_DISK_SIZE` | `5G` | Target disk size after clone |
 | `CA_KEY_PATH` | `./ca_ed25519` | Path to the CA private key file |
+| `ATLAS_SSH_KEY_DIR` | `./.atlas/keys` | Encrypted key vault directory (private keys + vault metadata) |
 | `SNIPPET_STORAGE` | `local` | Proxmox storage with snippets enabled |
 | `SNIPPET_DIR` | `/var/lib/vz/snippets` | Filesystem path on PVE node for snippets |
 | `VM_USER` | `debian` | Cloud-Init username |
@@ -190,11 +193,11 @@ ATLAS_ENV_FILE=.env.prod go run main.go
    Results
 ════════════════════════════════════════
   ✅  VM 500 (bold-falcon-e7a2c1) — 10.0.10.128
-      ssh -i ./bold-falcon-e7a2c1_key debian@10.0.10.128
+        ssh -i bold-falcon-e7a2c1_key debian@10.0.10.128
   ✅  VM 501 (swift-nexus-3f19b4) — 10.0.10.130
-      ssh -i ./swift-nexus-3f19b4_key debian@10.0.10.130
+        ssh -i swift-nexus-3f19b4_key debian@10.0.10.130
   ✅  VM 502 (keen-orbit-8dc0a5) — 10.0.10.131
-      ssh -i ./keen-orbit-8dc0a5_key debian@10.0.10.131
+        ssh -i keen-orbit-8dc0a5_key debian@10.0.10.131
 
   3 succeeded, 0 failed
 ════════════════════════════════════════
@@ -239,14 +242,22 @@ runcmd:
   - systemctl restart sshd     # activate CA trust
 ```
 
+## SSH Key Retrieval
+
+- During provisioning, the pipeline card still shows a **Download Key** button.
+- After deployment, use the **Download SSH Key** action directly on each VM card/list item in the VMs panel.
+- API routes:
+  - `GET /api/vms/{id}/ssh-key` (recommended, stable key lookup by VMID)
+  - `GET /api/keys/{filename}` (legacy filename route, still supported)
+
 ## Cleanup
 
 ```bash
 # Delete the provisioned VMs
 # (via Proxmox UI or API)
 
-# Remove all ephemeral keys
-rm -f ./*_key ./*_key-cert.pub
+# Remove encrypted key vault (all stored SSH keys)
+rm -rf ./.atlas/keys
 ```
 
 ## License

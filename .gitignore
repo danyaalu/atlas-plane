@@ -2,6 +2,7 @@
 *.pub
 *_key
 ca_ed25519
+.atlas/
 
 # Executable binaries
 atlas-plane

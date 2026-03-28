@@ -1669,6 +1669,7 @@ const Icons = {
   stop: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>`,
   restart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>`,
   terminal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+  key: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M11 15.5h10"/><path d="M18 15.5v3"/><path d="M15 15.5v2"/></svg>`,
   trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
   server: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>`,
   cpu: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>`,
@@ -1997,6 +1998,9 @@ function VMCard(vm, idx) {
   const loadingAction = state.loadingActions[vm.vmid];
   const delay = Math.min(idx * 0.03, 0.5);
   const isSelected = state.selectedVMs.has(vm.vmid);
+  const keyBtn = vm.hasSshKey
+    ? `<button class="btn-icon tip" data-tip="Download SSH Key" data-action="vm-download-key" data-vmid="${vm.vmid}" data-keyname="${esc(vm.sshKeyFile || '')}">${Icons.key}</button>`
+    : '';
 
   let actions = '';
   if (!isTemplate) {
@@ -2012,6 +2016,7 @@ function VMCard(vm, idx) {
         <button class="btn-icon tip" data-tip="Console" data-action="vm-console" data-vmid="${vm.vmid}" data-node="${nodeStr}">
           ${Icons.terminal}
         </button>
+        ${keyBtn}
         <span class="spacer"></span>
         <button class="btn-icon danger tip" data-tip="Delete" disabled>
           ${Icons.trash}
@@ -2021,6 +2026,7 @@ function VMCard(vm, idx) {
         <button class="btn-icon tip success" data-tip="Start" data-action="vm-start" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
           ${loadingAction === 'start' ? '<span class="spinner"></span>' : Icons.play}
         </button>
+        ${keyBtn}
         <span class="spacer"></span>
         <button class="btn-icon danger tip" data-tip="Delete" data-action="vm-delete" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
           ${loadingAction === 'delete' ? '<span class="spinner"></span>' : Icons.trash}
@@ -2074,6 +2080,9 @@ function VMListItem(vm, idx) {
   const loadingAction = state.loadingActions[vm.vmid];
   const delay = Math.min(idx * 0.02, 0.4);
   const isSelected = state.selectedVMs.has(vm.vmid);
+  const keyBtn = vm.hasSshKey
+    ? `<button class="btn-icon tip" data-tip="Download SSH Key" data-action="vm-download-key" data-vmid="${vm.vmid}" data-keyname="${esc(vm.sshKeyFile || '')}">${Icons.key}</button>`
+    : '';
 
   let actions = '';
   if (!isTemplate) {
@@ -2089,6 +2098,7 @@ function VMListItem(vm, idx) {
         <button class="btn-icon tip" data-tip="Console" data-action="vm-console" data-vmid="${vm.vmid}" data-node="${nodeStr}">
           ${Icons.terminal}
         </button>
+        ${keyBtn}
         <button class="btn-icon danger tip" data-tip="Delete" disabled>
           ${Icons.trash}
         </button>`;
@@ -2097,6 +2107,7 @@ function VMListItem(vm, idx) {
         <button class="btn-icon tip success" data-tip="Start" data-action="vm-start" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
           ${loadingAction === 'start' ? '<span class="spinner"></span>' : Icons.play}
         </button>
+        ${keyBtn}
         <button class="btn-icon danger tip" data-tip="Delete" data-action="vm-delete" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
           ${loadingAction === 'delete' ? '<span class="spinner"></span>' : Icons.trash}
         </button>`;
@@ -2318,8 +2329,8 @@ function ProvisionCard(vmid, vmData) {
   if (isDone) {
     const tmplObj = TEMPLATES.find(t => t.id === state.prov.template);
     const user = tmplObj?.user || 'debian';
-    const keyBase = vm.keyFile ? vm.keyFile.replace(/^\.\//, '') : '';
-    const downloadUrl = `/api/keys/${keyBase}`;
+    const keyBase = vm.keyFile ? vm.keyFile.replace(/^\.\//, '') : `vm-${vmid}_key`;
+    const downloadUrl = `/api/vms/${vmid}/ssh-key`;
     const sshCmd = `chmod 600 ~/Downloads/${keyBase} && ssh -i ~/Downloads/${keyBase} ${user}@${vm.ip}`;
     result = `<div class="prov-result">
       <div class="prov-result-header">
@@ -3407,6 +3418,18 @@ document.addEventListener('click', async (e) => {
       } else {
         toast('Proxmox URL not configured', 'error');
       }
+      break;
+    }
+
+    case 'vm-download-key': {
+      const vmid = +el.dataset.vmid;
+      const filename = el.dataset.keyname || `vm-${vmid}_key`;
+      const a = document.createElement('a');
+      a.href = `/api/vms/${vmid}/ssh-key`;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
       break;
     }
 
