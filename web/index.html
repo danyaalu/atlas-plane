@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/winbox@0.2.82/dist/css/winbox.min.css">
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    Atlas Plane — Enterprise Dark Theme — Design Tokens
@@ -1635,6 +1637,101 @@ input[type="range"].hw-range::-moz-range-track { height: 5px; background: var(--
 .tpl-log-time { color: var(--text-4); margin-right: 8px; }
 .tpl-log-stage { color: var(--accent-hover); margin-right: 6px; text-transform: uppercase; font-size: 0.66rem; }
 
+.atlas-term-host {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-0);
+  border-top: 1px solid var(--border);
+}
+.atlas-term-host .xterm {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+}
+
+.wb-body .atlas-term-host {
+  border-top: none;
+}
+
+.atlas-term-winbox .wb-max {
+  display: none !important;
+}
+
+.atlas-term-winbox {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(79, 142, 247, 0.15) !important;
+  background: linear-gradient(180deg, #0f1219 0%, #0b0e14 100%) !important;
+}
+
+.atlas-term-winbox .wb-header {
+  height: 38px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+}
+
+.atlas-term-winbox .wb-title {
+  font-family: var(--mono) !important;
+  font-size: 0.76rem !important;
+  color: #d6def0 !important;
+  letter-spacing: 0.02em;
+}
+
+.atlas-term-winbox .wb-control {
+  gap: 8px !important;
+  padding-right: 10px !important;
+  display: flex;
+  align-items: center;
+}
+
+.atlas-term-winbox .wb-control span {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 6px !important;
+  margin-top: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background-color: rgba(255,255,255,0.06) !important;
+  background-position: center center !important;
+  background-size: 11px 11px !important;
+  transition: all 140ms var(--ease);
+}
+
+.atlas-term-winbox .wb-control span:hover {
+  background-color: rgba(79,142,247,0.12) !important;
+  border-color: rgba(79,142,247,0.35) !important;
+}
+
+.atlas-term-winbox .wb-close:hover {
+  background-color: rgba(248,113,113,0.15) !important;
+  border-color: rgba(248,113,113,0.35) !important;
+}
+
+.atlas-term-winbox .wb-min {
+  background-position: center center !important;
+  background-size: 11px 2px !important;
+}
+
+.atlas-term-winbox .wb-close {
+  background-position: center center !important;
+  background-size: 11px 11px !important;
+}
+
+.atlas-term-winbox .wb-body {
+  background: #0b0e14 !important;
+}
+
+.atlas-term-winbox .atlas-term-host {
+  border-top: none;
+}
+
+.atlas-term-winbox .xterm-viewport,
+.atlas-term-winbox .xterm-screen {
+  border-radius: 10px;
+}
+
 @media (max-width: 1100px) {
   .templates-layout { grid-template-columns: 1fr; }
   .tpl-node-row { grid-template-columns: 1fr; }
@@ -1654,6 +1751,10 @@ input[type="range"].hw-range::-moz-range-track { height: 5px; background: var(--
 <div class="toast-container" id="toasts"></div>
 <div id="dialog-root"></div>
 
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/winbox@0.2.82/dist/winbox.bundle.min.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    Atlas Plane — Frontend Application
@@ -1725,6 +1826,7 @@ const state = {
   prevVmStatuses: {},       // vmid -> status, for detecting status changes
   changedVmIds: new Set(),  // VMIDs whose status changed since last load
   config: {},
+  terminalWindows: new Map(), // vmid -> { winbox, term, fitAddon, socket, host }
   viewMode: 'grid', // 'grid' | 'list'
   selectedVMs: new Set(), // Set of selected VMIDs
   filters: {
@@ -2013,7 +2115,7 @@ function VMCard(vm, idx) {
         <button class="btn-icon tip" data-tip="Restart" data-action="vm-restart" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
           ${loadingAction === 'restart' ? '<span class="spinner"></span>' : Icons.restart}
         </button>
-        <button class="btn-icon tip" data-tip="Console" data-action="vm-console" data-vmid="${vm.vmid}" data-node="${nodeStr}">
+        <button class="btn-icon tip" data-tip="Connect" data-action="vm-connect" data-vmid="${vm.vmid}">
           ${Icons.terminal}
         </button>
         ${keyBtn}
@@ -2095,7 +2197,7 @@ function VMListItem(vm, idx) {
         <button class="btn-icon tip" data-tip="Restart" data-action="vm-restart" data-vmid="${vm.vmid}" data-vmname="${esc(vm.name)}" ${disableAll ? 'disabled' : ''}>
           ${loadingAction === 'restart' ? '<span class="spinner"></span>' : Icons.restart}
         </button>
-        <button class="btn-icon tip" data-tip="Console" data-action="vm-console" data-vmid="${vm.vmid}" data-node="${nodeStr}">
+        <button class="btn-icon tip" data-tip="Connect" data-action="vm-connect" data-vmid="${vm.vmid}">
           ${Icons.terminal}
         </button>
         ${keyBtn}
@@ -3425,14 +3527,14 @@ document.addEventListener('click', async (e) => {
       break;
     }
 
-    case 'vm-console': {
-      const vmid = el.dataset.vmid;
-      const node = el.dataset.node;
-      if (state.config.proxmoxUrl) {
-        window.open(`${state.config.proxmoxUrl}/?console=kvm&vmid=${vmid}&vmnode=${node}&novnc=1`, '_blank');
-      } else {
-        toast('Proxmox URL not configured', 'error');
+    case 'vm-connect': {
+      const vmid = +el.dataset.vmid;
+      const vm = state.vms.find(v => v.vmid === vmid);
+      if (!vm) {
+        toast('VM not found', 'error');
+        break;
       }
+      await openSSHWindow(vm);
       break;
     }
 
@@ -3704,6 +3806,288 @@ function switchPage(page) {
 /* ═══════════════════════════════════════════════════════════════════════════
    VM Actions
    ═══════════════════════════════════════════════════════════════════════════ */
+
+function sshBridgeBaseUrl() {
+  const configured = String(state.config.sshBridgeUrl || '').trim();
+  if (configured) return configured.replace(/\/+$/, '');
+  return `${window.location.protocol}//${window.location.hostname}:3002`;
+}
+
+function terminalWindowMinTop() {
+  const header = document.querySelector('.header');
+  const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+  return Math.ceil(headerBottom + 8);
+}
+
+function clampTerminalWindowToViewport(winboxElement, winboxInstance) {
+  if (!winboxElement) return;
+  const rect = winboxElement.getBoundingClientRect();
+  const minTop = terminalWindowMinTop();
+  if (rect.top >= minTop) return;
+
+  const deltaY = minTop - rect.top;
+  const targetTop = Math.round(rect.top + deltaY);
+  const targetLeft = Math.round(rect.left);
+
+  try {
+    if (typeof winboxInstance?.move === 'function') {
+      winboxInstance.move(targetLeft, targetTop);
+    } else {
+      winboxElement.style.top = `${targetTop}px`;
+      winboxElement.style.left = `${targetLeft}px`;
+    }
+  } catch (e) {
+    winboxElement.style.top = `${targetTop}px`;
+    winboxElement.style.left = `${targetLeft}px`;
+  }
+}
+
+function teardownTerminalSession(vmid, opts = {}) {
+  const { fromWindowClose = false } = opts;
+  const session = state.terminalWindows.get(vmid);
+  if (!session) return;
+  if (session.tearingDown) return;
+  session.tearingDown = true;
+
+  if (!fromWindowClose) {
+    try { session.winbox?.close(); } catch (e) {}
+  }
+
+  try { session.resizeObserver?.disconnect(); } catch (e) {}
+  try { session.maxClassObserver?.disconnect(); } catch (e) {}
+  try {
+    if (session.windowResizeHandler) {
+      window.removeEventListener('resize', session.windowResizeHandler);
+    }
+  } catch (e) {}
+  try { session.socket?.emit('ssh:disconnect'); } catch (e) {}
+  try { session.socket?.disconnect(); } catch (e) {}
+  try { session.term?.dispose(); } catch (e) {}
+  try { session.host?.remove(); } catch (e) {}
+
+  state.terminalWindows.delete(vmid);
+}
+
+async function openSSHWindow(vm) {
+  if (!vm?.vmid) {
+    toast('Invalid VM target', 'error');
+    return;
+  }
+
+  if (vm.status !== 'running') {
+    toast(`VM ${vm.vmid} must be running`, 'error');
+    return;
+  }
+
+  if (!vm.hasSshKey) {
+    toast(`No SSH key found for VM ${vm.vmid}`, 'error');
+    return;
+  }
+
+  const existing = state.terminalWindows.get(vm.vmid);
+  if (existing?.winbox) {
+    existing.winbox.focus();
+    return;
+  }
+
+  if (typeof WinBox !== 'function' || typeof Terminal !== 'function' || typeof io !== 'function' || typeof FitAddon?.FitAddon !== 'function') {
+    toast('Terminal dependencies failed to load', 'error');
+    return;
+  }
+
+  let connectInfo;
+  try {
+    connectInfo = await api('GET', `/vms/${vm.vmid}/ssh-connect`);
+  } catch (err) {
+    toast(`Connect failed: ${err.message}`, 'error');
+    return;
+  }
+
+  const bridgeUrl = sshBridgeBaseUrl();
+  const titleUser = connectInfo.user || state.config.user || 'debian';
+  const titleName = connectInfo.vmName || vm.name || `vm-${vm.vmid}`;
+
+  const host = document.createElement('div');
+  host.className = 'atlas-term-host';
+
+  const term = new Terminal({
+    cursorBlink: true,
+    scrollback: 5000,
+    convertEol: true,
+    fontFamily: 'JetBrains Mono, monospace',
+    fontSize: 13,
+    theme: {
+      background: '#0c0e13',
+      foreground: '#e8eaf0',
+      cursor: '#4f8ef7',
+      selectionBackground: 'rgba(79,142,247,0.25)',
+    },
+  });
+  const fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(host);
+
+  const socket = io(bridgeUrl, {
+    transports: ['websocket'],
+    reconnection: false,
+  });
+
+  const session = { winbox: null, term, fitAddon, socket, host, resizeObserver: null, tearingDown: false, windowResizeHandler: null };
+  state.terminalWindows.set(vm.vmid, session);
+
+  const scheduleFit = (() => {
+    let rafId = 0;
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        fitAndSync();
+      });
+    };
+  })();
+
+  let winboxElementRef = null;
+
+  const winbox = new WinBox({
+    title: `${titleUser}@${titleName}`,
+    width: '760px',
+    height: '460px',
+    x: 'center',
+    y: 'center',
+    noMax: true,
+    mount: host,
+    onclose: () => {
+      teardownTerminalSession(vm.vmid, { fromWindowClose: true });
+    },
+    onresize: () => {
+      if (winboxElementRef) clampTerminalWindowToViewport(winboxElementRef, session.winbox);
+      scheduleFit();
+    },
+    onfocus: () => {
+      if (winboxElementRef) clampTerminalWindowToViewport(winboxElementRef, session.winbox);
+      scheduleFit();
+    },
+    onmove: () => {
+      if (winboxElementRef) clampTerminalWindowToViewport(winboxElementRef, session.winbox);
+      scheduleFit();
+    },
+  });
+
+  session.winbox = winbox;
+
+  const winboxElement = host.closest('.winbox');
+  if (winboxElement) {
+    winboxElementRef = winboxElement;
+    winboxElement.classList.add('atlas-term-winbox');
+    const stopMaximizeDblClick = (event) => {
+      const target = event.target;
+      if (target && target.closest && target.closest('.wb-header, .wb-drag')) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        return false;
+      }
+    };
+
+    const headerEl = winboxElement.querySelector('.wb-header');
+    const dragEl = winboxElement.querySelector('.wb-drag');
+    if (headerEl) headerEl.ondblclick = stopMaximizeDblClick;
+    if (dragEl) dragEl.ondblclick = stopMaximizeDblClick;
+
+    winboxElement.addEventListener('dblclick', stopMaximizeDblClick, true);
+    winboxElement.addEventListener('click', (event) => {
+      if (event.detail > 1) {
+        stopMaximizeDblClick(event);
+      }
+    }, true);
+
+    const maxClassObserver = new MutationObserver(() => {
+      if (winboxElement.classList.contains('max')) {
+        if (typeof session.winbox?.restore === 'function') {
+          session.winbox.restore();
+        } else {
+          winboxElement.classList.remove('max');
+        }
+        scheduleFit();
+      }
+      clampTerminalWindowToViewport(winboxElement, session.winbox);
+    });
+    maxClassObserver.observe(winboxElement, { attributes: true, attributeFilter: ['class'] });
+    session.maxClassObserver = maxClassObserver;
+
+    const onWindowResize = () => {
+      clampTerminalWindowToViewport(winboxElement, session.winbox);
+      scheduleFit();
+    };
+    window.addEventListener('resize', onWindowResize);
+    session.windowResizeHandler = onWindowResize;
+
+    setTimeout(() => clampTerminalWindowToViewport(winboxElement, session.winbox), 0);
+  }
+
+  if (typeof ResizeObserver === 'function') {
+    const ro = new ResizeObserver(() => scheduleFit());
+    ro.observe(host);
+    session.resizeObserver = ro;
+  }
+
+  term.writeln(`Connecting to ${titleUser}@${connectInfo.host} ...`);
+
+  const fitAndSync = () => {
+    try {
+      fitAddon.fit();
+      socket.emit('ssh:resize', { cols: term.cols, rows: term.rows });
+    } catch (e) {}
+  };
+
+  setTimeout(scheduleFit, 20);
+
+  socket.on('connect', () => {
+    scheduleFit();
+    socket.emit('ssh:connect', { vmId: vm.vmid, cols: term.cols, rows: term.rows });
+  });
+
+  socket.on('ssh:data', (chunk) => term.write(chunk));
+  socket.on('ssh:ready', () => scheduleFit());
+
+  socket.on('ssh:error', ({ message }) => {
+    term.writeln(`\r\n[bridge error] ${message || 'unknown error'}\r\n`);
+  });
+
+  socket.on('ssh:closed', () => {
+    term.writeln('\r\n[session closed]\r\n');
+  });
+
+  socket.on('disconnect', () => {
+    term.writeln('\r\n[disconnected]\r\n');
+  });
+
+  term.onData((data) => socket.emit('ssh:input', data));
+
+  term.attachCustomKeyEventHandler((event) => {
+    const key = String(event.key || '').toLowerCase();
+    if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && key === 'c') {
+      const selected = term.getSelection();
+      if (selected) navigator.clipboard.writeText(selected).catch(() => {});
+      return false;
+    }
+    if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && key === 'v') {
+      navigator.clipboard.readText().then((text) => {
+        if (text) socket.emit('ssh:input', text);
+      }).catch(() => {});
+      return false;
+    }
+    return true;
+  });
+
+  host.addEventListener('paste', (event) => {
+    const text = event.clipboardData?.getData('text');
+    if (text) {
+      socket.emit('ssh:input', text);
+      event.preventDefault();
+    }
+  });
+}
 
 async function handleVMAction(action, vmid, name, skipConfirm = false) {
   if (action === 'delete' && !skipConfirm) {

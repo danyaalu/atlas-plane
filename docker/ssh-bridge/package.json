@@ -1,0 +1,13 @@
+{
+  "name": "atlas-ssh-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1",
+    "ssh2": "^1.16.0"
+  }
+}

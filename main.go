@@ -67,6 +67,7 @@ type Config struct {
 	DiskSize     string        // Target disk size after clone (e.g. 5G)
 	VMName       string        // Optional base name for provisioned VMs
 	KeyVaultDir  string        // Encrypted SSH key vault directory
+	SSHBridgeURL string        // Browser-reachable SSH bridge URL
 
 	// SSH access to the Proxmox host (for writing snippet files).
 	PVESSHUser string
@@ -96,6 +97,7 @@ func loadConfig() Config {
 		DiskSize:     envOr("VM_DISK_SIZE", "5G"),
 		VMName:       os.Getenv("VM_NAME"),
 		KeyVaultDir:  envOr("ATLAS_SSH_KEY_DIR", ".atlas/keys"),
+		SSHBridgeURL: envOr("ATLAS_SSH_BRIDGE_URL", "http://localhost:3002"),
 		PVESSHUser:   envOr("PVE_SSH_USER", "root"),
 		PVESSHKey:    envOr("PVE_SSH_KEY", defaultSSHKey),
 		PVESSHPort:   envOr("PVE_SSH_PORT", "22"),

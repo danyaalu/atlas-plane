@@ -132,6 +132,7 @@ You can also point to a custom env file by setting `ATLAS_ENV_FILE`.
 | `CA_KEY_PATH` | `./ca_ed25519` | Path to the CA private key file |
 | `ATLAS_SSH_KEY_DIR` | `./.atlas/keys` | Encrypted key vault directory (private keys + vault metadata) |
 | `MASTER_ENCRYPTION_KEY` | *(required for encrypted key vault)* | 32-byte AES key (64-char hex, base64, or raw 32-byte string) |
+| `ATLAS_SSH_BRIDGE_URL` | `http://localhost:3002` | Browser URL for the Socket.io SSH bridge used by in-app terminal |
 | `SNIPPET_STORAGE` | `local` | Proxmox storage with snippets enabled |
 | `SNIPPET_DIR` | `/var/lib/vz/snippets` | Filesystem path on PVE node for snippets |
 | `VM_USER` | `debian` | Cloud-Init username |
@@ -249,7 +250,15 @@ runcmd:
 - After deployment, use the **Download SSH Key** action directly on each VM card/list item in the VMs panel.
 - API routes:
   - `GET /api/vms/{id}/ssh-key` (recommended, stable key lookup by VMID)
+  - `GET /api/vms/{id}/ssh-connect` (returns host/user metadata for browser SSH terminal)
   - `GET /api/keys/{filename}` (legacy filename route, still supported)
+
+## Browser Terminal (WinBox + xterm.js)
+
+- The **Connect** action on a running VM opens a draggable/resizable WinBox terminal window.
+- The frontend streams keystrokes/resize events with Socket.io to `ssh-bridge`.
+- `ssh-bridge` decrypts the VM key from `index.json` + `.enc` using `MASTER_ENCRYPTION_KEY`, then authenticates via `ssh2`.
+- Private keys never leave server-side containers.
 
 ## Docker Migration
 

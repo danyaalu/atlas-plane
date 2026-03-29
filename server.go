@@ -188,6 +188,7 @@ func startWebServer(cfg Config, port string) {
 
 	// API — VMs
 	mux.HandleFunc("GET /api/vms", ws.handleListVMs)
+	mux.HandleFunc("GET /api/vms/{id}/ssh-connect", ws.handleVMSSHConnect)
 	mux.HandleFunc("POST /api/vms/{id}/start", ws.handleStartVM)
 	mux.HandleFunc("POST /api/vms/{id}/stop", ws.handleStopVM)
 	mux.HandleFunc("POST /api/vms/{id}/restart", ws.handleRestartVM)
@@ -240,15 +241,16 @@ func (ws *WebServer) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func (ws *WebServer) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]interface{}{
-		"proxmoxUrl": ws.cfg.ProxmoxURL,
-		"node":       ws.cfg.Node,
-		"templateId": ws.cfg.TemplateID,
-		"cores":      ws.cfg.Cores,
-		"memory":     ws.cfg.Memory,
-		"diskSize":   ws.cfg.DiskSize,
-		"diskDevice": ws.cfg.DiskDevice,
-		"user":       ws.cfg.User,
-		"vmStartId":  ws.cfg.VMStartID,
+		"proxmoxUrl":   ws.cfg.ProxmoxURL,
+		"node":         ws.cfg.Node,
+		"sshBridgeUrl": ws.cfg.SSHBridgeURL,
+		"templateId":   ws.cfg.TemplateID,
+		"cores":        ws.cfg.Cores,
+		"memory":       ws.cfg.Memory,
+		"diskSize":     ws.cfg.DiskSize,
+		"diskDevice":   ws.cfg.DiskDevice,
+		"user":         ws.cfg.User,
+		"vmStartId":    ws.cfg.VMStartID,
 	})
 }
 
@@ -304,6 +306,80 @@ func (ws *WebServer) handleStartVM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonOK(w, map[string]string{"status": "started"})
+}
+
+func (ws *WebServer) handleVMSSHConnect(w http.ResponseWriter, r *http.Request) {
+	if ws.keyVault == nil {
+		jsonError(w, "key vault is not initialized", 500)
+		return
+	}
+
+	vmid, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || vmid <= 0 {
+		jsonError(w, "invalid VMID", 400)
+		return
+	}
+
+	if !ws.keyVault.HasKeyForVM(vmid) {
+		jsonError(w, "key not found for VM", 404)
+		return
+	}
+
+	node, err := ws.pve.resolveVMNode(vmid)
+	if err != nil {
+		jsonError(w, err.Error(), 404)
+		return
+	}
+
+	vms, err := ws.pve.listVMs()
+	if err != nil {
+		jsonError(w, "failed to list VMs: "+err.Error(), 500)
+		return
+	}
+
+	vmName := fmt.Sprintf("vm-%d", vmid)
+	status := "unknown"
+	for _, vm := range vms {
+		rawVMID, ok := vm["vmid"].(float64)
+		if !ok || int(rawVMID) != vmid {
+			continue
+		}
+		if name, ok := vm["name"].(string); ok && strings.TrimSpace(name) != "" {
+			vmName = name
+		}
+		if vmStatus, ok := vm["status"].(string); ok {
+			status = vmStatus
+		}
+		break
+	}
+
+	if status != "running" {
+		jsonError(w, "vm must be running to connect", 409)
+		return
+	}
+
+	path := fmt.Sprintf("/api2/json/nodes/%s/qemu/%d/agent/network-get-interfaces", node, vmid)
+	ipData, err := ws.pve.get(path)
+	if err != nil {
+		jsonError(w, "failed to query VM network interfaces: "+err.Error(), 502)
+		return
+	}
+
+	host := extractIPv4(ipData)
+	if strings.TrimSpace(host) == "" {
+		jsonError(w, "no IPv4 address reported by guest agent", 409)
+		return
+	}
+
+	jsonOK(w, map[string]interface{}{
+		"vmid":       vmid,
+		"vmName":     vmName,
+		"node":       node,
+		"status":     status,
+		"host":       host,
+		"user":       ws.cfg.User,
+		"sshKeyFile": ws.keyVault.KeyFileNameForVM(vmid),
+	})
 }
 
 func (ws *WebServer) handleStopVM(w http.ResponseWriter, r *http.Request) {

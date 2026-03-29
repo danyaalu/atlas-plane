@@ -3,10 +3,10 @@
 FROM node:20-alpine
 WORKDIR /bridge
 
-RUN apk add --no-cache openssh-client \
-  && apk add --no-cache --virtual .build-deps python3 py3-setuptools make g++ \
-  && npm install --global --omit=dev wetty \
-  && apk del .build-deps
+COPY docker/ssh-bridge/package.json ./package.json
+RUN npm install --omit=dev
+
+COPY docker/ssh-bridge/server.mjs ./server.mjs
 
 RUN addgroup -S app && adduser -S app -G app \
   && mkdir -p /keys \
@@ -15,4 +15,4 @@ RUN addgroup -S app && adduser -S app -G app \
 
 USER app
 EXPOSE 3002
-CMD ["sh", "-c", "if [ -n \"$SSH_TARGET_HOST\" ] && [ -n \"$SSH_KEY_FILE\" ]; then exec wetty --port 3002 --base / --command '/bin/sh -lc \"ssh -i /keys/${SSH_KEY_FILE} ${SSH_USER}@${SSH_TARGET_HOST}\"'; else echo 'SSH_TARGET_HOST/SSH_KEY_FILE not set, starting interactive shell bridge'; exec wetty --port 3002 --base / --command '/bin/sh'; fi"]
+CMD ["npm", "run", "start"]

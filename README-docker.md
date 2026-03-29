@@ -40,12 +40,21 @@ Backend API/UI is exposed on `http://localhost:8080`.
 Required for startup:
 - `MASTER_ENCRYPTION_KEY`
 
-Optional for direct SSH mode in `ssh-bridge`:
-- `SSH_TARGET_HOST`
-- `SSH_USER` (optional, defaults to `debian`)
-- `SSH_KEY_FILE` (key filename from index/download name)
+Used by `ssh-bridge` (socket.io + ssh2):
+- `MASTER_ENCRYPTION_KEY` (required)
+- `ATLAS_BACKEND_URL` (defaults to `http://backend:8080`)
+- `ATLAS_FRONTEND_ORIGIN` (defaults to `http://localhost:8080`)
+- `SSH_USER` (optional default SSH user, defaults to `debian`)
+- `SSH_PORT` (defaults to `22`)
 
-If `SSH_TARGET_HOST`/`SSH_KEY_FILE` are missing, `ssh-bridge` starts in shell mode and still comes up.
+The bridge resolves VM host/user metadata from backend endpoint `GET /api/vms/{id}/ssh-connect`, decrypts the per-VM `.enc` key from `/keys`, and never sends private keys to the browser.
+
+## Browser Terminal UX
+
+- In the VMs view, click **Connect** on a running VM with a provisioned key.
+- The UI opens a floating WinBox window and initializes xterm.js.
+- Keystrokes and resize events are sent over Socket.io to `ssh-bridge`.
+- Closing the window immediately tears down SSH stream + socket session.
 
 ## Security Notes
 
