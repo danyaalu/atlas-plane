@@ -9,5 +9,5 @@ atlas-plane
 
 # Sensitive files
 *.env
-.env
+.env*
 atlas-template-sot.json

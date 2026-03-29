@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -28,10 +29,9 @@ type sshKeyVaultState struct {
 }
 
 type SSHKeyVault struct {
-	dir           string
-	indexPath     string
-	masterKeyPath string
-	aead          cipher.AEAD
+	dir       string
+	indexPath string
+	aead      cipher.AEAD
 
 	mu         sync.Mutex
 	records    map[int]sshKeyRecord
@@ -53,8 +53,7 @@ func newSSHKeyVault(dir string) (*SSHKeyVault, error) {
 		return nil, fmt.Errorf("secure key vault dir permissions: %w", err)
 	}
 
-	masterKeyPath := filepath.Join(dir, "master.key")
-	masterKey, err := loadOrCreateMasterKey(masterKeyPath)
+	masterKey, err := loadMasterKeyFromEnv()
 	if err != nil {
 		return nil, err
 	}
@@ -69,12 +68,11 @@ func newSSHKeyVault(dir string) (*SSHKeyVault, error) {
 	}
 
 	v := &SSHKeyVault{
-		dir:           dir,
-		indexPath:     filepath.Join(dir, "index.json"),
-		masterKeyPath: masterKeyPath,
-		aead:          aead,
-		records:       make(map[int]sshKeyRecord),
-		nameToVMID:    make(map[string]int),
+		dir:        dir,
+		indexPath:  filepath.Join(dir, "index.json"),
+		aead:       aead,
+		records:    make(map[int]sshKeyRecord),
+		nameToVMID: make(map[string]int),
 	}
 	if err := v.loadIndex(); err != nil {
 		return nil, err
@@ -83,26 +81,32 @@ func newSSHKeyVault(dir string) (*SSHKeyVault, error) {
 	return v, nil
 }
 
-func loadOrCreateMasterKey(path string) ([]byte, error) {
-	b, err := os.ReadFile(path)
-	if err == nil {
-		if len(b) != 32 {
-			return nil, fmt.Errorf("invalid master key length in %s", path)
-		}
-		return b, nil
-	}
-	if !os.IsNotExist(err) {
-		return nil, fmt.Errorf("read master key: %w", err)
+func loadMasterKeyFromEnv() ([]byte, error) {
+	v := strings.TrimSpace(os.Getenv("MASTER_ENCRYPTION_KEY"))
+	if v == "" {
+		return nil, fmt.Errorf("MASTER_ENCRYPTION_KEY is required")
 	}
 
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		return nil, fmt.Errorf("generate master key: %w", err)
+	if len(v) == 64 {
+		if decoded, err := hex.DecodeString(v); err == nil {
+			if len(decoded) == 32 {
+				return decoded, nil
+			}
+		}
 	}
-	if err := os.WriteFile(path, key, 0600); err != nil {
-		return nil, fmt.Errorf("write master key: %w", err)
+
+	if decoded, err := base64.StdEncoding.DecodeString(v); err == nil && len(decoded) == 32 {
+		return decoded, nil
 	}
-	return key, nil
+	if decoded, err := base64.RawStdEncoding.DecodeString(v); err == nil && len(decoded) == 32 {
+		return decoded, nil
+	}
+
+	if len(v) == 32 {
+		return []byte(v), nil
+	}
+
+	return nil, fmt.Errorf("MASTER_ENCRYPTION_KEY must decode to exactly 32 bytes (accepted: 64-char hex, base64, or raw 32-byte string)")
 }
 
 func (v *SSHKeyVault) loadIndex() error {

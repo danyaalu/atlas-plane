@@ -131,6 +131,7 @@ You can also point to a custom env file by setting `ATLAS_ENV_FILE`.
 | `VM_DISK_SIZE` | `5G` | Target disk size after clone |
 | `CA_KEY_PATH` | `./ca_ed25519` | Path to the CA private key file |
 | `ATLAS_SSH_KEY_DIR` | `./.atlas/keys` | Encrypted key vault directory (private keys + vault metadata) |
+| `MASTER_ENCRYPTION_KEY` | *(required for encrypted key vault)* | 32-byte AES key (64-char hex, base64, or raw 32-byte string) |
 | `SNIPPET_STORAGE` | `local` | Proxmox storage with snippets enabled |
 | `SNIPPET_DIR` | `/var/lib/vz/snippets` | Filesystem path on PVE node for snippets |
 | `VM_USER` | `debian` | Cloud-Init username |
@@ -249,6 +250,16 @@ runcmd:
 - API routes:
   - `GET /api/vms/{id}/ssh-key` (recommended, stable key lookup by VMID)
   - `GET /api/keys/{filename}` (legacy filename route, still supported)
+
+## Docker Migration
+
+Docker artifacts are available for the split backend + SSH bridge architecture:
+
+- `Dockerfile` (optimized Node.js/TypeScript backend image)
+- `docker-compose.yml` (backend + `ssh-bridge` + `ssh_key_data` named volume)
+- `scripts/migrate_key_vault.py` (one-time migration tool)
+
+Runbook: see [README-docker.md](README-docker.md)
 
 ## Cleanup
 

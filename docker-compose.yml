@@ -1,0 +1,55 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: atlas-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+      - .env.docker
+    environment:
+      KEY_VAULT_DIR: /keys
+      ATLAS_SSH_KEY_DIR: /keys
+      ATLAS_WEB_PORT: 8080
+      CA_KEY_PATH: /app/ca_ed25519
+      PVE_SSH_KEY: /app/pve_ssh_key
+      MASTER_ENCRYPTION_KEY: ${MASTER_ENCRYPTION_KEY:?set MASTER_ENCRYPTION_KEY in shell or .env.docker}
+    secrets:
+      - ca_ed25519
+      - pve_ssh_key
+    volumes:
+      - ssh_key_data:/keys
+      - ./atlas-template-sot.json:/app/atlas-template-sot.json
+    ports:
+      - "8080:8080"
+
+  ssh-bridge:
+    build:
+      context: .
+      dockerfile: docker/ssh-bridge/Dockerfile
+    container_name: atlas-ssh-bridge
+    restart: unless-stopped
+    env_file:
+      - .env
+      - .env.docker
+    depends_on:
+      - backend
+    environment:
+      SSH_TARGET_HOST: ${SSH_TARGET_HOST:-}
+      SSH_USER: ${SSH_USER:-debian}
+      SSH_KEY_FILE: ${SSH_KEY_FILE:-}
+    volumes:
+      - ssh_key_data:/keys:ro
+    ports:
+      - "3002:3002"
+
+volumes:
+  ssh_key_data:
+    name: ssh_key_data
+
+secrets:
+  ca_ed25519:
+    file: ./ca_ed25519
+  pve_ssh_key:
+    file: ${HOME}/.ssh/id_rsa
