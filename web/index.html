@@ -2331,7 +2331,8 @@ function ProvisionCard(vmid, vmData) {
     const user = tmplObj?.user || 'debian';
     const keyBase = vm.keyFile ? vm.keyFile.replace(/^\.\//, '') : `vm-${vmid}_key`;
     const downloadUrl = `/api/vms/${vmid}/ssh-key`;
-    const sshCmd = `chmod 600 ~/Downloads/${keyBase} && ssh -i ~/Downloads/${keyBase} ${user}@${vm.ip}`;
+    const setupCmd = buildSetupOneLiner(keyBase, vm.ip, user);
+    const setupTitle = isWindowsClient() ? 'Windows Setup Command (PowerShell)' : 'macOS/Linux Setup Command';
     result = `<div class="prov-result">
       <div class="prov-result-header">
         <div>
@@ -2343,9 +2344,9 @@ function ProvisionCard(vmid, vmData) {
           Download Key
         </a>
       </div>
-      <div class="prov-result-section-label">SSH Command — paste after downloading key</div>
-      <div class="prov-ssh" data-action="copy-ssh" data-cmd="${esc(sshCmd)}" title="Click to copy">
-        <code>${esc(sshCmd)}</code>
+      <div class="prov-result-section-label">${esc(setupTitle)} — run after downloading key</div>
+      <div class="prov-ssh" data-action="copy-ssh" data-cmd="${esc(setupCmd)}" title="Click to copy">
+        <code>${esc(setupCmd)}</code>
         <span class="copy-label">Copy</span>
       </div>
     </div>`;
@@ -2364,6 +2365,20 @@ function ProvisionCard(vmid, vmData) {
     </ol>
     ${result}
   </div>`;
+}
+
+function isWindowsClient() {
+  const platform = (navigator.userAgentData?.platform || navigator.platform || '').toLowerCase();
+  const userAgent = (navigator.userAgent || '').toLowerCase();
+  return platform.includes('win') || userAgent.includes('windows');
+}
+
+function buildSetupOneLiner(keyName, ipAddress, vmUser) {
+  const origin = window.location.origin;
+  if (isWindowsClient()) {
+    return `iwr -useb ${origin}/api/setup.ps1 -OutFile "$env:TEMP\\atlas-setup.ps1"; & "$env:TEMP\\atlas-setup.ps1" -KEY_NAME "${keyName}" -IP_ADDRESS "${ipAddress}" -VM_USER "${vmUser}"`;
+  }
+  return `curl -fsSL ${origin}/api/setup.sh | bash -s -- ${keyName} ${ipAddress} ${vmUser}`;
 }
 
 /* ── Provision Pipeline ────────────────────────────────────────────────── */
@@ -3437,7 +3452,7 @@ document.addEventListener('click', async (e) => {
       const cmd = el.dataset.cmd;
       if (cmd) {
         await navigator.clipboard.writeText(cmd);
-        toast('SSH command copied', 'success');
+        toast('Setup command copied', 'success');
       }
       break;
     }

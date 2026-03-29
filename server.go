@@ -21,6 +21,12 @@ import (
 //go:embed web/index.html
 var indexHTML []byte
 
+//go:embed setup.sh
+var setupSh []byte
+
+//go:embed setup.ps1
+var setupPs1 []byte
+
 // ════════════════════════════════════════════════════════════════════════════
 // Provision Event — shared between CLI and Web modes
 // ════════════════════════════════════════════════════════════════════════════
@@ -190,6 +196,8 @@ func startWebServer(cfg Config, port string) {
 	// API — Keys (download provisioned SSH keys)
 	mux.HandleFunc("GET /api/keys/{filename}", ws.handleDownloadKey)
 	mux.HandleFunc("GET /api/vms/{id}/ssh-key", ws.handleDownloadVMKey)
+	mux.HandleFunc("GET /api/setup.sh", ws.handleSetupSh)
+	mux.HandleFunc("GET /api/setup.ps1", ws.handleSetupPs1)
 
 	// API — Provisioning
 	mux.HandleFunc("POST /api/provision", ws.handleProvision)
@@ -411,6 +419,22 @@ func (ws *WebServer) writeKeyDownload(w http.ResponseWriter, filename string, da
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(data)
+}
+
+func (ws *WebServer) handleSetupSh(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(setupSh)))
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(setupSh)
+}
+
+func (ws *WebServer) handleSetupPs1(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(setupPs1)))
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(setupPs1)
 }
 
 func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {
