@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sort"
@@ -75,6 +76,20 @@ type ProvisionParams struct {
 	Node       string `json:"node"`
 }
 
+type preflightRequest struct {
+	VMCount    int    `json:"vmCount"`
+	VMStartID  int    `json:"vmStartId"`
+	TemplateID int    `json:"templateId"`
+	Template   string `json:"templateName"`
+	Node       string `json:"node"`
+}
+
+type preflightCheck struct {
+	Name    string `json:"name"`
+	Status  string `json:"status"` // pass, fail
+	Message string `json:"message"`
+}
+
 // VMResultJSON is the JSON-safe view of VMResult for API responses.
 type VMResultJSON struct {
 	VMID    int    `json:"vmid"`
@@ -136,6 +151,7 @@ type WebServer struct {
 	pve      *ProxmoxClient
 	pveHost  string
 	keyVault *SSHKeyVault
+	auth     *AuthManager
 
 	mu   sync.Mutex
 	jobs map[string]*Job
@@ -153,12 +169,17 @@ func startWebServer(cfg Config, port string) {
 	if err != nil {
 		fatalf("Cannot determine Proxmox host: %v", err)
 	}
+	auth, err := newAuthManager(cfg)
+	if err != nil {
+		fatalf("Authentication configuration is invalid: %v", err)
+	}
 
 	ws := &WebServer{
 		cfg:      cfg,
 		pve:      pve,
 		pveHost:  pveHost,
 		keyVault: sshKeyVault,
+		auth:     auth,
 		jobs:     make(map[string]*Job),
 		templates: map[string]*TemplateState{
 			defaultTemplateName: {
@@ -180,40 +201,55 @@ func startWebServer(cfg Config, port string) {
 	// Frontend
 	mux.HandleFunc("GET /", ws.handleIndex)
 
+	// API — Authentication
+	mux.HandleFunc("GET /api/auth/me", ws.handleAuthMe)
+	mux.HandleFunc("POST /api/auth/bootstrap", ws.handleAuthBootstrap)
+	mux.HandleFunc("POST /api/auth/login", ws.handleAuthLogin)
+	mux.HandleFunc("POST /api/auth/logout", ws.handleAuthLogout)
+
 	// API — Config
-	mux.HandleFunc("GET /api/config", ws.handleGetConfig)
+	mux.HandleFunc("GET /api/config", ws.withRole(RoleViewer, ws.handleGetConfig))
 
 	// API — Nodes
-	mux.HandleFunc("GET /api/nodes", ws.handleListNodes)
+	mux.HandleFunc("GET /api/nodes", ws.withRole(RoleViewer, ws.handleListNodes))
 
 	// API — VMs
-	mux.HandleFunc("GET /api/vms", ws.handleListVMs)
-	mux.HandleFunc("GET /api/vms/{id}/ssh-connect", ws.handleVMSSHConnect)
-	mux.HandleFunc("POST /api/vms/{id}/start", ws.handleStartVM)
-	mux.HandleFunc("POST /api/vms/{id}/stop", ws.handleStopVM)
-	mux.HandleFunc("POST /api/vms/{id}/restart", ws.handleRestartVM)
-	mux.HandleFunc("DELETE /api/vms/{id}", ws.handleDeleteVM)
+	mux.HandleFunc("GET /api/vms", ws.withRole(RoleViewer, ws.handleListVMs))
+	mux.HandleFunc("GET /api/vms/{id}/ssh-connect", ws.withRole(RoleOperator, ws.handleVMSSHConnect))
+	mux.HandleFunc("POST /api/vms/{id}/start", ws.withRole(RoleOperator, ws.handleStartVM))
+	mux.HandleFunc("POST /api/vms/{id}/stop", ws.withRole(RoleOperator, ws.handleStopVM))
+	mux.HandleFunc("POST /api/vms/{id}/restart", ws.withRole(RoleOperator, ws.handleRestartVM))
+	mux.HandleFunc("DELETE /api/vms/{id}", ws.withRole(RoleAdmin, ws.handleDeleteVM))
 
 	// API — Keys (download provisioned SSH keys)
-	mux.HandleFunc("GET /api/keys/{filename}", ws.handleDownloadKey)
-	mux.HandleFunc("GET /api/vms/{id}/ssh-key", ws.handleDownloadVMKey)
+	mux.HandleFunc("GET /api/keys/{filename}", ws.withRole(RoleOperator, ws.handleDownloadKey))
+	mux.HandleFunc("GET /api/vms/{id}/ssh-key", ws.withRole(RoleOperator, ws.handleDownloadVMKey))
+	// Setup scripts must remain public so post-deploy one-liners work outside authenticated UI sessions.
 	mux.HandleFunc("GET /api/setup.sh", ws.handleSetupSh)
 	mux.HandleFunc("GET /api/setup.ps1", ws.handleSetupPs1)
 
 	// API — Provisioning
-	mux.HandleFunc("POST /api/provision", ws.handleProvision)
-	mux.HandleFunc("GET /api/jobs", ws.handleListJobs)
-	mux.HandleFunc("GET /api/jobs/{id}/events", ws.handleJobEvents)
+	mux.HandleFunc("POST /api/preflight", ws.withRole(RoleOperator, ws.handlePreflight))
+	mux.HandleFunc("POST /api/provision", ws.withRole(RoleOperator, ws.handleProvision))
+	mux.HandleFunc("GET /api/jobs", ws.withRole(RoleViewer, ws.handleListJobs))
+	mux.HandleFunc("GET /api/jobs/{id}/events", ws.withRole(RoleViewer, ws.handleJobEvents))
 
 	// API — Template Management
-	mux.HandleFunc("GET /api/templates/state", ws.handleTemplateState)
-	mux.HandleFunc("POST /api/templates/{name}/nodes/{node}/storage", ws.handleAssignTemplateStorage)
-	mux.HandleFunc("POST /api/templates/{name}/build", ws.handleBuildTemplate)
-	mux.HandleFunc("GET /api/templates/logs/{node}", ws.handleTemplateNodeLogs)
+	mux.HandleFunc("GET /api/templates/state", ws.withRole(RoleViewer, ws.handleTemplateState))
+	mux.HandleFunc("POST /api/templates/{name}/nodes/{node}/storage", ws.withRole(RoleAdmin, ws.handleAssignTemplateStorage))
+	mux.HandleFunc("POST /api/templates/{name}/build", ws.withRole(RoleAdmin, ws.handleBuildTemplate))
+	mux.HandleFunc("GET /api/templates/logs/{node}", ws.withRole(RoleViewer, ws.handleTemplateNodeLogs))
 
 	fmt.Printf("\n✦  Atlas Plane — Web UI\n")
 	fmt.Printf("   http://localhost:%s\n", port)
 	fmt.Printf("   Proxmox: %s (node: %s)\n\n", cfg.ProxmoxURL, cfg.Node)
+	if auth.Enabled() {
+		if auth.BootstrapRequired() {
+			fmt.Printf("   Auth: enabled (bootstrap required)\n\n")
+		} else {
+			fmt.Printf("   Auth: enabled (%d configured users)\n\n", auth.ConfiguredUserCount())
+		}
+	}
 
 	server := &http.Server{
 		Addr:         ":" + port,
@@ -237,6 +273,167 @@ func (ws *WebServer) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(indexHTML)
+}
+
+func (ws *WebServer) withRole(required Role, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if ws.auth == nil || !ws.auth.Enabled() {
+			next(w, r)
+			return
+		}
+
+		identity, ok := ws.auth.IdentityFromRequest(r)
+		if !ok {
+			jsonError(w, "authentication required", http.StatusUnauthorized)
+			return
+		}
+		if !identity.Role.Allows(required) {
+			jsonError(w, "insufficient permissions", http.StatusForbidden)
+			return
+		}
+
+		next(w, withAuthIdentity(r, identity))
+	}
+}
+
+type authLoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type authBootstrapRequest struct {
+	Password string `json:"password"`
+}
+
+func (ws *WebServer) handleAuthMe(w http.ResponseWriter, r *http.Request) {
+	if ws.auth == nil || !ws.auth.Enabled() {
+		jsonOK(w, map[string]interface{}{
+			"enabled":           false,
+			"authenticated":     true,
+			"bootstrapRequired": false,
+			"role":              string(RoleAdmin),
+		})
+		return
+	}
+	if ws.auth.BootstrapRequired() {
+		jsonOK(w, map[string]interface{}{
+			"enabled":           true,
+			"authenticated":     false,
+			"bootstrapRequired": true,
+			"username":          defaultBootstrapUsername,
+		})
+		return
+	}
+
+	identity, ok := ws.auth.IdentityFromRequest(r)
+	if !ok {
+		jsonOK(w, map[string]interface{}{
+			"enabled":           true,
+			"authenticated":     false,
+			"bootstrapRequired": false,
+		})
+		return
+	}
+
+	jsonOK(w, map[string]interface{}{
+		"enabled":           true,
+		"authenticated":     true,
+		"bootstrapRequired": false,
+		"username":          identity.Username,
+		"role":              string(identity.Role),
+	})
+}
+
+func (ws *WebServer) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
+	if ws.auth == nil || !ws.auth.Enabled() {
+		jsonError(w, "authentication is disabled", http.StatusBadRequest)
+		return
+	}
+	if !ws.auth.BootstrapRequired() {
+		jsonError(w, "bootstrap has already been completed", http.StatusConflict)
+		return
+	}
+
+	var req authBootstrapRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := ws.auth.BootstrapAdmin(req.Password); err != nil {
+		jsonError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	identity, token, err := ws.auth.Login(defaultBootstrapUsername, req.Password)
+	if err != nil {
+		jsonError(w, "bootstrap succeeded, but login failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	clientIP := requestClientIP(r)
+	ws.auth.ResetLoginAttempts(clientIP)
+	ws.auth.SetSessionCookie(w, token, r.TLS != nil)
+	jsonOK(w, map[string]interface{}{
+		"authenticated":     true,
+		"bootstrapRequired": false,
+		"username":          identity.Username,
+		"role":              string(identity.Role),
+	})
+}
+
+func (ws *WebServer) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
+	if ws.auth == nil || !ws.auth.Enabled() {
+		jsonError(w, "authentication is disabled", http.StatusBadRequest)
+		return
+	}
+	if ws.auth.BootstrapRequired() {
+		jsonError(w, "first-time bootstrap is required before login", http.StatusConflict)
+		return
+	}
+
+	var req authLoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	clientIP := requestClientIP(r)
+	allowed, retryAfter := ws.auth.AllowLoginAttempt(clientIP)
+	if !allowed {
+		retrySeconds := int(retryAfter.Seconds())
+		if retrySeconds < 1 {
+			retrySeconds = 1
+		}
+		w.Header().Set("Retry-After", strconv.Itoa(retrySeconds))
+		jsonError(w, "too many login attempts, please try again later", http.StatusTooManyRequests)
+		return
+	}
+
+	identity, token, err := ws.auth.Login(req.Username, req.Password)
+	if err != nil {
+		jsonError(w, "invalid username or password", http.StatusUnauthorized)
+		return
+	}
+
+	ws.auth.ResetLoginAttempts(clientIP)
+	ws.auth.SetSessionCookie(w, token, r.TLS != nil)
+	jsonOK(w, map[string]interface{}{
+		"authenticated": true,
+		"username":      identity.Username,
+		"role":          string(identity.Role),
+	})
+}
+
+func (ws *WebServer) handleAuthLogout(w http.ResponseWriter, r *http.Request) {
+	if ws.auth != nil && ws.auth.Enabled() {
+		if token := ws.auth.TokenFromRequest(r); token != "" {
+			ws.auth.LogoutToken(token)
+		}
+		ws.auth.ClearSessionCookie(w, r.TLS != nil)
+	}
+
+	jsonOK(w, map[string]string{"status": "logged_out"})
 }
 
 func (ws *WebServer) handleGetConfig(w http.ResponseWriter, r *http.Request) {
@@ -511,6 +708,169 @@ func (ws *WebServer) handleSetupPs1(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(setupPs1)
+}
+
+func (ws *WebServer) handlePreflight(w http.ResponseWriter, r *http.Request) {
+	var req preflightRequest
+	if r.Body != nil {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil && err != io.EOF {
+			jsonError(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	cfg := ws.cfg
+	if req.VMCount > 0 {
+		cfg.VMCount = req.VMCount
+	}
+	if req.VMStartID > 0 {
+		cfg.VMStartID = req.VMStartID
+	}
+	if strings.TrimSpace(req.Node) != "" {
+		cfg.Node = strings.TrimSpace(req.Node)
+	}
+
+	resolvedTemplateID := cfg.TemplateID
+	var templateResolveErr error
+	if strings.TrimSpace(req.Template) != "" {
+		templateVMID, err := ws.templateVMIDForNode(strings.TrimSpace(req.Template), cfg.Node)
+		if err != nil {
+			resolvedTemplateID = 0
+			templateResolveErr = err
+		} else {
+			resolvedTemplateID = templateVMID
+		}
+	} else if req.TemplateID > 0 {
+		resolvedTemplateID = req.TemplateID
+	}
+
+	checks := make([]preflightCheck, 0, 10)
+	ready := true
+	addPass := func(name, msg string) {
+		checks = append(checks, preflightCheck{Name: name, Status: "pass", Message: msg})
+	}
+	addFail := func(name string, err error) {
+		ready = false
+		msg := "check failed"
+		if err != nil {
+			msg = err.Error()
+		}
+		checks = append(checks, preflightCheck{Name: name, Status: "fail", Message: msg})
+	}
+
+	nodes, err := ws.pve.listNodes()
+	if err != nil {
+		addFail("proxmox_api", fmt.Errorf("proxmox API is unreachable: %w", err))
+	} else {
+		addPass("proxmox_api", "Proxmox API is reachable")
+	}
+
+	nodeReachable := false
+	if err == nil {
+		found := false
+		for _, node := range nodes {
+			name, _ := node["node"].(string)
+			if strings.TrimSpace(name) != cfg.Node {
+				continue
+			}
+			found = true
+			if status, _ := node["status"].(string); status == "online" {
+				nodeReachable = true
+				addPass("target_node", fmt.Sprintf("Node %s is online", cfg.Node))
+			} else {
+				addFail("target_node", fmt.Errorf("node %s is not online", cfg.Node))
+			}
+			break
+		}
+		if !found {
+			addFail("target_node", fmt.Errorf("node %s was not found in cluster nodes", cfg.Node))
+		}
+	}
+
+	if resolvedTemplateID > 0 {
+		addPass("template", fmt.Sprintf("Template VMID resolved to %d", resolvedTemplateID))
+	} else {
+		if templateResolveErr != nil {
+			addFail("template", fmt.Errorf("template resolution failed: %w", templateResolveErr))
+		} else {
+			addFail("template", fmt.Errorf("template could not be resolved for node %s", cfg.Node))
+		}
+	}
+
+	if nodeReachable {
+		storages, storageErr := ws.pve.listNodeStorages(cfg.Node)
+		if storageErr != nil {
+			addFail("snippet_storage", fmt.Errorf("failed to list storages for node %s: %w", cfg.Node, storageErr))
+		} else {
+			foundStorage := false
+			snippetsEnabled := false
+			for _, st := range storages {
+				id, _ := st["storage"].(string)
+				if id != cfg.SnippetStore {
+					continue
+				}
+				foundStorage = true
+				content := strings.ToLower(fmt.Sprint(st["content"]))
+				snippetsEnabled = strings.Contains(content, "snippets")
+				break
+			}
+			if !foundStorage {
+				addFail("snippet_storage", fmt.Errorf("storage %s is not visible on node %s", cfg.SnippetStore, cfg.Node))
+			} else if !snippetsEnabled {
+				addFail("snippet_storage", fmt.Errorf("storage %s does not expose snippets content", cfg.SnippetStore))
+			} else {
+				addPass("snippet_storage", fmt.Sprintf("Storage %s supports snippets", cfg.SnippetStore))
+			}
+		}
+
+		host := ws.sshHostForNode(cfg.Node)
+		checkDirCmd := fmt.Sprintf("test -d %s && test -w %s", shellQuote(cfg.SnippetDir), shellQuote(cfg.SnippetDir))
+		if sshErr := ws.execSSHCommand(host, checkDirCmd, nil); sshErr != nil {
+			addFail("snippet_dir_access", fmt.Errorf("cannot access snippet directory %s over SSH: %w", cfg.SnippetDir, sshErr))
+		} else {
+			addPass("snippet_dir_access", fmt.Sprintf("SSH can access writable snippet directory %s", cfg.SnippetDir))
+		}
+	}
+
+	if _, caErr := os.ReadFile(cfg.CAKeyPath); caErr != nil {
+		addFail("ca_key", fmt.Errorf("cannot read CA key %s: %w", cfg.CAKeyPath, caErr))
+	} else {
+		addPass("ca_key", fmt.Sprintf("CA key is readable at %s", cfg.CAKeyPath))
+	}
+
+	if ws.keyVault == nil {
+		addFail("key_vault", fmt.Errorf("key vault is not initialized"))
+	} else {
+		addPass("key_vault", "encrypted key vault is initialized")
+	}
+
+	if cfg.VMCount < 1 {
+		addFail("vm_count", fmt.Errorf("vmCount must be >= 1"))
+	} else {
+		addPass("vm_count", fmt.Sprintf("requested VM count: %d", cfg.VMCount))
+	}
+
+	var candidateVMIDs []int
+	if cfg.VMCount > 0 {
+		ids, allocErr := ws.pve.allocateVMIDs(cfg.VMStartID, cfg.VMCount)
+		if allocErr != nil {
+			addFail("vmid_allocation", fmt.Errorf("VMID allocation check failed: %w", allocErr))
+		} else {
+			candidateVMIDs = ids
+			addPass("vmid_allocation", fmt.Sprintf("found %d free VMID(s) starting from %d", len(ids), cfg.VMStartID))
+		}
+	}
+
+	jsonOK(w, map[string]interface{}{
+		"ready":              ready,
+		"node":               cfg.Node,
+		"templateId":         resolvedTemplateID,
+		"vmCount":            cfg.VMCount,
+		"vmStartId":          cfg.VMStartID,
+		"candidateVmids":     candidateVMIDs,
+		"checks":             checks,
+		"checkedAtUnixMilli": time.Now().UnixMilli(),
+	})
 }
 
 func (ws *WebServer) handleProvision(w http.ResponseWriter, r *http.Request) {

@@ -73,6 +73,14 @@ type Config struct {
 	PVESSHUser string
 	PVESSHKey  string
 	PVESSHPort string
+
+	// Web auth (optional, only used in serve mode).
+	AuthEnabled          bool
+	AuthUsers            string
+	AuthStorePath        string
+	AuthSessionTTL       time.Duration
+	AuthLoginMaxAttempts int
+	AuthLoginWindow      time.Duration
 }
 
 func loadConfig() Config {
@@ -80,27 +88,37 @@ func loadConfig() Config {
 	defaultSSHKey := filepath.Join(home, ".ssh", "id_rsa")
 
 	return Config{
-		ProxmoxURL:   envOr("PROXMOX_URL", "https://192.168.1.100:8006"),
-		Node:         envOr("PROXMOX_NODE", "pve"),
-		APIToken:     os.Getenv("PROXMOX_API_TOKEN"),
-		TemplateID:   envIntOr("TEMPLATE_VMID", 9000),
-		VMCount:      envIntOr("VM_COUNT", 1),
-		VMStartID:    envIntOr("VM_START_ID", 500),
-		Cores:        envIntOr("VM_CORES", 1),
-		Memory:       envIntOr("VM_MEMORY", 1024),
-		CAKeyPath:    envOr("CA_KEY_PATH", "./ca_ed25519"),
-		SnippetStore: envOr("SNIPPET_STORAGE", "local"),
-		SnippetDir:   envOr("SNIPPET_DIR", "/var/lib/vz/snippets"),
-		CertValidity: 4 * time.Hour,
-		User:         envOr("VM_USER", "debian"),
-		DiskDevice:   envOr("VM_DISK_DEVICE", "scsi0"),
-		DiskSize:     envOr("VM_DISK_SIZE", "5G"),
-		VMName:       os.Getenv("VM_NAME"),
-		KeyVaultDir:  envOr("ATLAS_SSH_KEY_DIR", ".atlas/keys"),
-		SSHBridgeURL: envOr("ATLAS_SSH_BRIDGE_URL", "http://localhost:3002"),
-		PVESSHUser:   envOr("PVE_SSH_USER", "root"),
-		PVESSHKey:    envOr("PVE_SSH_KEY", defaultSSHKey),
-		PVESSHPort:   envOr("PVE_SSH_PORT", "22"),
+		ProxmoxURL:    envOr("PROXMOX_URL", "https://192.168.1.100:8006"),
+		Node:          envOr("PROXMOX_NODE", "pve"),
+		APIToken:      os.Getenv("PROXMOX_API_TOKEN"),
+		TemplateID:    envIntOr("TEMPLATE_VMID", 9000),
+		VMCount:       envIntOr("VM_COUNT", 1),
+		VMStartID:     envIntOr("VM_START_ID", 500),
+		Cores:         envIntOr("VM_CORES", 1),
+		Memory:        envIntOr("VM_MEMORY", 1024),
+		CAKeyPath:     envOr("CA_KEY_PATH", "./ca_ed25519"),
+		SnippetStore:  envOr("SNIPPET_STORAGE", "local"),
+		SnippetDir:    envOr("SNIPPET_DIR", "/var/lib/vz/snippets"),
+		CertValidity:  4 * time.Hour,
+		User:          envOr("VM_USER", "debian"),
+		DiskDevice:    envOr("VM_DISK_DEVICE", "scsi0"),
+		DiskSize:      envOr("VM_DISK_SIZE", "5G"),
+		VMName:        os.Getenv("VM_NAME"),
+		KeyVaultDir:   envOr("ATLAS_SSH_KEY_DIR", ".atlas/keys"),
+		SSHBridgeURL:  envOr("ATLAS_SSH_BRIDGE_URL", "http://localhost:3002"),
+		PVESSHUser:    envOr("PVE_SSH_USER", "root"),
+		PVESSHKey:     envOr("PVE_SSH_KEY", defaultSSHKey),
+		PVESSHPort:    envOr("PVE_SSH_PORT", "22"),
+		AuthEnabled:   envBoolOr("ATLAS_AUTH_ENABLED", false),
+		AuthUsers:     os.Getenv("ATLAS_AUTH_USERS"),
+		AuthStorePath: envOr("ATLAS_AUTH_STORE_PATH", ".atlas/auth/users.json"),
+		AuthSessionTTL: time.Duration(
+			envIntOr("ATLAS_AUTH_SESSION_TTL_MINUTES", 480),
+		) * time.Minute,
+		AuthLoginMaxAttempts: envIntOr("ATLAS_AUTH_LOGIN_MAX_ATTEMPTS", 5),
+		AuthLoginWindow: time.Duration(
+			envIntOr("ATLAS_AUTH_LOGIN_WINDOW_MINUTES", 15),
+		) * time.Minute,
 	}
 }
 
@@ -133,6 +151,20 @@ func envIntOr(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+func envBoolOr(key string, fallback bool) bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	switch v {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	case "":
+		return fallback
+	default:
+		return fallback
+	}
 }
 
 func loadEnvFile() {
@@ -244,7 +276,7 @@ func (c *ProxmoxClient) apiDo(method, path string, body io.Reader, contentType s
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("API %s %s → %d: %s", method, path, resp.StatusCode, string(raw))
+		return nil, fmt.Errorf("proxmox request failed (%d): %s", resp.StatusCode, proxmoxErrorMessage(raw, resp.Status))
 	}
 
 	var envelope map[string]interface{}
@@ -252,6 +284,25 @@ func (c *ProxmoxClient) apiDo(method, path string, body io.Reader, contentType s
 		return nil, fmt.Errorf("json decode: %w (body: %s)", err, string(raw))
 	}
 	return envelope["data"], nil
+}
+
+func proxmoxErrorMessage(raw []byte, fallback string) string {
+	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" {
+		return fallback
+	}
+
+	var envelope map[string]interface{}
+	if err := json.Unmarshal(raw, &envelope); err == nil {
+		if msg, ok := envelope["message"].(string); ok && strings.TrimSpace(msg) != "" {
+			return strings.TrimSpace(msg)
+		}
+		if errMsg, ok := envelope["error"].(string); ok && strings.TrimSpace(errMsg) != "" {
+			return strings.TrimSpace(errMsg)
+		}
+	}
+
+	return strings.TrimSpace(trimmed)
 }
 
 func (c *ProxmoxClient) postForm(path string, vals url.Values) (interface{}, error) {
@@ -470,8 +521,10 @@ func generateSSHCert(caKeyPath string, vmID int, vmName string, principals []str
 // Cloud-Init
 // ════════════════════════════════════════════════════════════════════════════
 
-func buildCloudInitUserData(user, caPubKey, userPubKey string) string {
+func buildCloudInitUserData(hostname, user, caPubKey, userPubKey string) string {
 	return fmt.Sprintf(`#cloud-config
+hostname: %s
+manage_etc_hosts: true
 users:
   - name: %s
     sudo: ALL=(ALL) NOPASSWD:ALL
@@ -499,7 +552,7 @@ write_files:
 runcmd:
   - systemctl enable --now qemu-guest-agent
   - systemctl restart sshd
-`, user, userPubKey, caPubKey)
+`, hostname, user, userPubKey, caPubKey)
 }
 
 func writeSnippetViaSSH(host, port, user, keyPath, snippetDir, filename, content string) error {
@@ -823,7 +876,7 @@ func provisionVM(cfg Config, pve *ProxmoxClient, pveHost string, spec VMSpec, em
 	}
 	result.PrivKeyFile = certResult.PrivKeyFile
 
-	userData := buildCloudInitUserData(cfg.User, certResult.CAPubKey, certResult.UserPubKey)
+	userData := buildCloudInitUserData(spec.Name, cfg.User, certResult.CAPubKey, certResult.UserPubKey)
 	snippetName := fmt.Sprintf("vm-%d-user-data.yml", spec.VMID)
 
 	send("writing_snippet", "Writing Cloud-Init snippet…")

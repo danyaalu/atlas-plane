@@ -157,6 +157,113 @@ code { font-family: var(--mono); font-size: 0.9em; }
   animation: pulse 2s infinite;
 }
 .header-status.disconnected .header-status-dot { background: var(--red); animation: none; }
+.header-auth {
+  display: flex; align-items: center; gap: 8px;
+}
+.header-auth-user {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.76rem; color: var(--text-2);
+  padding: 4px 9px; border-radius: 16px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+}
+.header-auth-user svg { width: 12px; height: 12px; }
+.header-auth-role {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 600; color: var(--accent-hover); padding: 3px 8px;
+  border-radius: 999px; background: var(--accent-bg); border: 1px solid var(--accent-border);
+}
+
+/* ═══ Authentication Overlay ══════════════════════════════════════════════ */
+.auth-overlay {
+  position: fixed; inset: 0; z-index: 350;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8,10,14,0.78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 24px;
+}
+.auth-card {
+  width: min(440px, 100%);
+  background: var(--bg-1);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 22px 22px 18px;
+}
+.auth-card h2 {
+  font-size: 1.02rem; font-weight: 600; margin-bottom: 6px;
+}
+.auth-card p {
+  font-size: 0.82rem; color: var(--text-2); margin-bottom: 14px;
+}
+.auth-form {
+  display: grid; gap: 10px;
+}
+.auth-form label {
+  display: grid; gap: 6px; font-size: 0.74rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.auth-form input {
+  width: 100%;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 9px 10px;
+  outline: none;
+  transition: all var(--duration) var(--ease);
+}
+.auth-form input:focus {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px rgba(79,142,247,0.08);
+}
+.auth-error {
+  color: var(--red); background: var(--red-bg); border: 1px solid var(--red-border);
+  border-radius: var(--radius); font-size: 0.78rem; padding: 8px 10px;
+}
+
+/* ═══ Provision Preflight ════════════════════════════════════════════════ */
+.preflight-summary {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.74rem; font-weight: 600;
+  padding: 4px 9px; border-radius: 999px;
+  border: 1px solid var(--border-light); color: var(--text-2);
+  background: var(--bg-3);
+}
+.preflight-summary.ok {
+  color: var(--green); background: var(--green-bg); border-color: var(--green-border);
+}
+.preflight-summary.bad {
+  color: var(--red); background: var(--red-bg); border-color: var(--red-border);
+}
+.preflight-summary.pending {
+  color: var(--amber); background: var(--amber-bg); border-color: rgba(251,191,36,0.2);
+}
+.preflight-list {
+  margin-top: 10px; display: grid; gap: 6px;
+}
+.preflight-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+  padding: 8px 10px;
+}
+.preflight-item-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 0.75rem; color: var(--text-2);
+}
+.preflight-item-status {
+  font-size: 0.67rem; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border-light);
+}
+.preflight-item.pass .preflight-item-status {
+  color: var(--green); border-color: var(--green-border); background: var(--green-bg);
+}
+.preflight-item.fail .preflight-item-status {
+  color: var(--red); border-color: var(--red-border); background: var(--red-bg);
+}
+.preflight-item-msg {
+  margin-top: 5px; font-size: 0.75rem; color: var(--text-3);
+}
 
 /* ═══ Main Layout ════════════════════════════════════════════════════════ */
 .main { flex: 1; padding: 24px; max-width: 1480px; width: 100%; margin: 0 auto; }
@@ -1814,6 +1921,7 @@ const TEMPLATE_STAGE_LABELS = {
   Failed: 'Failed'
 };
 const ATLAS_VM_PATTERN = /^[a-z]+-[a-z]+-[0-9a-f]{6}$/;
+const ROLE_RANK = { viewer: 1, operator: 2, admin: 3 };
 
 /* ── Application State ─────────────────────────────────────────────────── */
 const state = {
@@ -1876,23 +1984,104 @@ const state = {
     loading: false,
     busy: false,
   },
+  preflight: {
+    loading: false,
+    result: null,
+    error: '',
+  },
+  auth: {
+    enabled: false,
+    authenticated: false,
+    bootstrapRequired: false,
+    username: '',
+    role: '',
+    loading: true,
+    error: '',
+  },
 };
 
 /* ── API Client ────────────────────────────────────────────────────────── */
+function normalizeBackendErrorMessage(rawMessage) {
+  let msg = String(rawMessage || '').trim();
+  if (!msg) return 'Request failed. Please try again.';
+
+  msg = msg.replace(/^API\s+[A-Z]+\s+.+?\s+→\s+\d+:\s*/i, '').trim();
+
+  if ((msg.startsWith('{') && msg.endsWith('}')) || (msg.startsWith('[') && msg.endsWith(']'))) {
+    try {
+      const parsed = JSON.parse(msg);
+      if (parsed && typeof parsed === 'object') {
+        if (typeof parsed.error === 'string' && parsed.error.trim()) {
+          msg = parsed.error.trim();
+        } else if (typeof parsed.message === 'string' && parsed.message.trim()) {
+          msg = parsed.message.trim();
+        }
+      }
+    } catch (_) {}
+  }
+
+  msg = msg.replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim();
+
+  if (/is running - destroy failed/i.test(msg)) {
+    return 'This VM is running. Stop it first, then delete it.';
+  }
+  if (/key not found for vm|key not found/i.test(msg)) {
+    return 'No SSH key is available for this VM.';
+  }
+  if (/no ipv4 address reported by guest agent/i.test(msg)) {
+    return 'No IPv4 address is available yet. Wait for networking to finish and try again.';
+  }
+  if (/vm must be running to connect/i.test(msg)) {
+    return 'The VM must be running before you can connect.';
+  }
+  if (/invalid vmid/i.test(msg)) {
+    return 'Invalid VM selected.';
+  }
+  if (/authentication required/i.test(msg)) {
+    return 'Please sign in to continue.';
+  }
+  if (/insufficient permissions/i.test(msg)) {
+    return 'Your account does not have permission for this action.';
+  }
+  if (/too many login attempts/i.test(msg)) {
+    return 'Too many login attempts. Please wait and try again.';
+  }
+  if (/bootstrap is required|first-time bootstrap/i.test(msg)) {
+    return 'Complete first-time password setup before signing in.';
+  }
+
+  return msg;
+}
+
 async function api(method, path, body) {
-  const opts = { method, headers: {} };
+  const opts = { method, headers: {}, credentials: 'include' };
   if (body) {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);
   }
   const r = await fetch('/api' + path, opts);
-  const data = await r.json();
-  if (!r.ok) throw new Error(data.error || 'Request failed');
+  let data = null;
+  let textBody = '';
+  try {
+    data = await r.json();
+  } catch (_) {
+    try { textBody = await r.text(); } catch (__){ }
+  }
+  if (!r.ok) {
+    const backendMsg = (data && (data.error || data.message)) || textBody || `${r.status} ${r.statusText}`;
+    if (r.status === 401 && state.auth.enabled) {
+      state.auth.authenticated = false;
+      state.auth.error = 'Your session has expired. Please sign in again.';
+      render();
+    }
+    throw new Error(normalizeBackendErrorMessage(backendMsg));
+  }
   return data;
 }
 
 /* ── Drawer Controls ───────────────────────────────────────────────────── */
 function openDrawer() {
+  invalidatePreflight();
   state.drawerOpen = true;
   render();
   document.body.style.overflow = 'hidden';
@@ -1980,8 +2169,31 @@ function getUniqueNodes(vms) {
   return Array.from(nodes).sort();
 }
 
+function hasRole(requiredRole) {
+  if (!state.auth.enabled) return true;
+  if (!state.auth.authenticated) return false;
+  const current = ROLE_RANK[String(state.auth.role || '').toLowerCase()] || 0;
+  const required = ROLE_RANK[String(requiredRole || '').toLowerCase()] || 0;
+  return current >= required;
+}
+
+function invalidatePreflight() {
+  state.preflight.result = null;
+  state.preflight.error = '';
+  const launchBtn = document.getElementById('btn-launch');
+  if (launchBtn) {
+    launchBtn.disabled = true;
+  }
+}
+
 /* ── Toast System ──────────────────────────────────────────────────────── */
-function toast(msg, type = 'info') {
+const toastBatch = {
+  queue: [],
+  timer: null,
+  windowMs: 350,
+};
+
+function showToast(msg, type = 'info') {
   const el = document.createElement('div');
   el.className = 'toast toast-' + type;
   const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
@@ -1993,6 +2205,67 @@ function toast(msg, type = 'info') {
     el.style.transition = 'all 0.3s var(--ease)';
     setTimeout(() => el.remove(), 300);
   }, 4500);
+}
+
+function flushToastBatch() {
+  const items = toastBatch.queue.splice(0, toastBatch.queue.length);
+  toastBatch.timer = null;
+  if (items.length === 0) return;
+
+  const merged = new Map();
+  for (const item of items) {
+    const key = `${item.type}::${item.msg}`;
+    const current = merged.get(key) || { ...item, count: 0 };
+    current.count += 1;
+    merged.set(key, current);
+  }
+
+  const unique = Array.from(merged.values());
+  if (unique.length === 1) {
+    const single = unique[0];
+    const suffix = single.count > 1 ? ` (${single.count}x)` : '';
+    showToast(single.msg + suffix, single.type);
+    return;
+  }
+
+  if (unique.length <= 3) {
+    unique.forEach(entry => {
+      const suffix = entry.count > 1 ? ` (${entry.count}x)` : '';
+      showToast(entry.msg + suffix, entry.type);
+    });
+    return;
+  }
+
+  const byType = { error: [], success: [], info: [] };
+  unique.forEach(entry => {
+    if (entry.type === 'error') byType.error.push(entry);
+    else if (entry.type === 'success') byType.success.push(entry);
+    else byType.info.push(entry);
+  });
+
+  if (byType.error.length > 0) {
+    const totalErrors = byType.error.reduce((sum, item) => sum + item.count, 0);
+    showToast(totalErrors === 1
+      ? byType.error[0].msg
+      : `${totalErrors} actions need attention. ${byType.error[0].msg}`,
+    'error');
+  }
+  if (byType.success.length > 0) {
+    const totalSuccess = byType.success.reduce((sum, item) => sum + item.count, 0);
+    showToast(`${totalSuccess} actions completed successfully.`, 'success');
+  }
+  if (byType.info.length > 0) {
+    const totalInfo = byType.info.reduce((sum, item) => sum + item.count, 0);
+    showToast(`${totalInfo} additional updates.`, 'info');
+  }
+}
+
+function toast(msg, type = 'info') {
+  const normalizedMessage = normalizeBackendErrorMessage(msg);
+  toastBatch.queue.push({ msg: normalizedMessage, type });
+  if (!toastBatch.timer) {
+    toastBatch.timer = setTimeout(flushToastBatch, toastBatch.windowMs);
+  }
 }
 
 /* ── Confirm Dialog ────────────────────────────────────────────────────── */
@@ -2432,7 +2705,6 @@ function ProvisionCard(vmid, vmData) {
     const tmplObj = TEMPLATES.find(t => t.id === state.prov.template);
     const user = tmplObj?.user || 'debian';
     const keyBase = vm.keyFile ? vm.keyFile.replace(/^\.\//, '') : `vm-${vmid}_key`;
-    const downloadUrl = `/api/vms/${vmid}/ssh-key`;
     const setupCmd = buildSetupOneLiner(keyBase, vm.ip, user);
     const setupTitle = isWindowsClient() ? 'Windows Setup Command (PowerShell)' : 'macOS/Linux Setup Command';
     result = `<div class="prov-result">
@@ -2441,10 +2713,10 @@ function ProvisionCard(vmid, vmData) {
           <div class="ip-label">IP Address</div>
           <div class="ip">${esc(vm.ip)}</div>
         </div>
-        <a class="btn-download" href="${esc(downloadUrl)}" download="${esc(keyBase)}">
+        <button type="button" class="btn-download" data-action="vm-download-key" data-vmid="${vmid}" data-keyname="${esc(keyBase)}" data-cmd="${esc(setupCmd)}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download Key
-        </a>
+        </button>
       </div>
       <div class="prov-result-section-label">${esc(setupTitle)} — run after downloading key</div>
       <div class="prov-ssh" data-action="copy-ssh" data-cmd="${esc(setupCmd)}" title="Click to copy">
@@ -2481,6 +2753,46 @@ function buildSetupOneLiner(keyName, ipAddress, vmUser) {
     return `iwr -useb ${origin}/api/setup.ps1 -OutFile "$env:TEMP\\atlas-setup.ps1"; & "$env:TEMP\\atlas-setup.ps1" -KEY_NAME "${keyName}" -IP_ADDRESS "${ipAddress}" -VM_USER "${vmUser}"`;
   }
   return `curl -fsSL ${origin}/api/setup.sh | bash -s -- ${keyName} ${ipAddress} ${vmUser}`;
+}
+
+function triggerSSHKeyDownload(vmid, filename) {
+  const a = document.createElement('a');
+  a.href = `/api/vms/${vmid}/ssh-key`;
+  a.download = filename || `vm-${vmid}_key`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function resolveSetupCommandForVM(vmid, fallbackKeyName) {
+  const info = await api('GET', `/vms/${vmid}/ssh-connect`);
+  const keyName = (info.sshKeyFile || fallbackKeyName || `vm-${vmid}_key`).replace(/^\.\//, '');
+  const host = (info.host || '').trim();
+  if (!host) {
+    throw new Error('missing VM IP/host');
+  }
+  return buildSetupOneLiner(keyName, host, info.user || 'debian');
+}
+
+async function downloadSSHKeyAndCopySetup(vmid, filename, presetCmd = '') {
+  triggerSSHKeyDownload(vmid, filename);
+
+  let setupCmd = (presetCmd || '').trim();
+  if (!setupCmd) {
+    try {
+      setupCmd = await resolveSetupCommandForVM(vmid, filename);
+    } catch (_err) {
+      toast('SSH key downloaded', 'success');
+      return;
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(setupCmd);
+    toast('SSH key downloaded and setup command copied', 'success');
+  } catch (_err) {
+    toast('SSH key downloaded. Copy command from the deployment card.', 'info');
+  }
 }
 
 /* ── Provision Pipeline ────────────────────────────────────────────────── */
@@ -2649,6 +2961,45 @@ function getProvisionParams() {
   };
 }
 
+function getPreflightParams() {
+  const params = getProvisionParams();
+  return {
+    vmCount: params.vmCount,
+    vmStartId: params.vmStartId,
+    templateName: params.templateName,
+    templateId: Number(state.config.templateId || 0),
+    node: params.node || state.config.node || '',
+  };
+}
+
+async function runPreflightCheck(showToast = false) {
+  if (!hasRole('operator')) return null;
+
+  state.preflight.loading = true;
+  state.preflight.error = '';
+
+  try {
+    const result = await api('POST', '/preflight', getPreflightParams());
+    state.preflight.result = result;
+    if (showToast) {
+      toast(
+        result.ready
+          ? 'Preflight checks passed.'
+          : 'Preflight checks found issues. Review before deploying.',
+        result.ready ? 'success' : 'error'
+      );
+    }
+    return result;
+  } catch (err) {
+    state.preflight.result = null;
+    state.preflight.error = err.message || 'Preflight check failed.';
+    if (showToast) toast('Preflight check failed. ' + state.preflight.error, 'error');
+    return null;
+  } finally {
+    state.preflight.loading = false;
+  }
+}
+
 /* ── Provision Wizard ──────────────────────────────────────────────────── */
 function ProvisionWizard() {
   const hasTmpl = !!state.prov.template;
@@ -2772,7 +3123,7 @@ function renderProvisionWizard() {
   const hasProf      = !!state.prov.profile;
   const hasTmpl      = !!state.prov.template;
   const hasNode      = !!state.prov.node;
-  const canLaunch    = hasProf && hasTmpl && hasNode && !isLaunching;
+  const canLaunch    = hasProf && hasTmpl && hasNode && !!state.preflight.result?.ready && !isLaunching;
   const vmCount      = state.prov.vmCount;
 
   if (showPipeline) {
@@ -2995,6 +3346,7 @@ function DrawerWizardContent() {
   const hasProf = !!state.prov.profile;
   const isCustom = state.prov.profile === 'custom';
   const isLaunching = !!(state.activeJobId && !state.jobDone);
+  const previewVMName = sanitizeVMName(state.prov.vmName, true);
 
   /* step badges */
   function stepNum(n, done, active) {
@@ -3114,7 +3466,49 @@ function DrawerWizardContent() {
       : `<div id="prov-vm-name-hint" style="font-size:0.78rem;color:var(--text-3);margin-top:4px"></div>`}
   </div>`;
 
-  return osSection + instanceSection + nodeSection + configSection;
+  const pfResult = state.preflight.result;
+  const pfChecks = Array.isArray(pfResult?.checks) ? pfResult.checks : [];
+  const pfSummaryClass = state.preflight.loading
+    ? 'pending'
+    : (pfResult ? (pfResult.ready ? 'ok' : 'bad') : 'pending');
+  const pfSummaryText = state.preflight.loading
+    ? 'Running checks…'
+    : (pfResult ? (pfResult.ready ? 'Ready to deploy' : 'Issues found') : 'Checks not run');
+  const preflightSection = `
+  <div class="drawer-section${!hasNode ? ' locked' : ''}" id="drawer-sec-preflight">
+    <div class="drawer-section-hd">
+      ${stepNum(5, !!pfResult?.ready, hasNode)}
+      <span class="drawer-section-title">Preflight Validation</span>
+      <span class="preflight-summary ${pfSummaryClass}">${pfSummaryText}</span>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:2px">
+      <button class="btn btn-secondary btn-sm" data-action="run-preflight" ${state.preflight.loading || !hasNode ? 'disabled' : ''}>
+        ${state.preflight.loading ? '<span class="spinner"></span> Running…' : Icons.bolt + ' Run checks'}
+      </button>
+    </div>
+    ${state.preflight.error ? `<div class="auth-error" style="margin-top:8px">${esc(state.preflight.error)}</div>` : ''}
+    ${pfChecks.length === 0 ? `
+      <div style="margin-top:8px;font-size:0.78rem;color:var(--text-3)">
+        Run preflight checks to validate API access, node health, template resolution, snippet access, and VMID availability.
+      </div>
+    ` : `
+      <div class="preflight-list">
+        ${pfChecks.map(ch => {
+          const status = String(ch.status || 'fail').toLowerCase();
+          const cls = status === 'pass' ? 'pass' : 'fail';
+          return `<div class="preflight-item ${cls}">
+            <div class="preflight-item-head">
+              <strong>${esc(ch.name || 'check')}</strong>
+              <span class="preflight-item-status">${esc(status)}</span>
+            </div>
+            <div class="preflight-item-msg">${esc(ch.message || '')}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    `}
+  </div>`;
+
+  return osSection + instanceSection + nodeSection + configSection + preflightSection;
 }
 
 /* ── Drawer ────────────────────────────────────────────────────────────── */
@@ -3126,7 +3520,8 @@ function Drawer() {
   const hasProf  = !!state.prov.profile;
   const hasTmpl  = !!state.prov.template;
   const hasNode  = !!state.prov.node;
-  const canLaunch = hasProf && hasTmpl && hasNode && !isLaunching;
+  const preflightReady = !!state.preflight.result?.ready;
+  const canLaunch = hasProf && hasTmpl && hasNode && preflightReady && !isLaunching;
 
   const vmCount = state.prov.vmCount;
   const launchLabel = isLaunching
@@ -3175,6 +3570,17 @@ function Drawer() {
 function Header() {
   const connected = !!state.config.proxmoxUrl;
   const connClass = connected ? '' : ' disconnected';
+  const roleLabel = String(state.auth.role || '').toUpperCase();
+  const authUI = !state.auth.enabled ? '' : state.auth.authenticated
+    ? `<div class="header-auth">
+        <span class="header-auth-role">${esc(roleLabel)}</span>
+        <span class="header-auth-user">${Icons.user} ${esc(state.auth.username || 'user')}</span>
+        <button class="btn btn-secondary btn-sm" data-action="auth-logout">Sign out</button>
+      </div>`
+    : `<div class="header-status disconnected">
+        <span class="header-status-dot"></span>
+        <span>${state.auth.bootstrapRequired ? 'Initial setup required' : 'Sign in required'}</span>
+      </div>`;
 
   return `<header class="header">
     <div class="header-brand">
@@ -3191,8 +3597,58 @@ function Header() {
         <span class="header-status-dot"></span>
         <span>${connected ? esc(state.config.node || 'Connected') : 'Disconnected'}</span>
       </div>
+      ${authUI}
     </div>
   </header>`;
+}
+
+function AuthOverlay() {
+  if (!state.auth.enabled) return '';
+  if (state.auth.loading) {
+    return `<div class="auth-overlay">
+      <div class="auth-card">
+        <h2>Checking session</h2>
+        <p>Please wait while Atlas Plane validates your session.</p>
+      </div>
+    </div>`;
+  }
+  if (state.auth.authenticated) return '';
+
+  if (state.auth.bootstrapRequired) {
+    return `<div class="auth-overlay">
+      <div class="auth-card">
+        <h2>Set initial admin password</h2>
+        <p>This is the first startup with authentication enabled. Create the password for <code>admin</code>. Only a bcrypt hash is stored on disk.</p>
+        ${state.auth.error ? `<div class="auth-error">${esc(state.auth.error)}</div>` : ''}
+        <div class="auth-form" style="margin-top:10px">
+          <label>New admin password
+            <input id="auth-bootstrap-password" type="password" autocomplete="new-password" maxlength="256">
+          </label>
+          <label>Confirm password
+            <input id="auth-bootstrap-confirm" type="password" autocomplete="new-password" maxlength="256">
+          </label>
+          <button class="btn btn-primary" data-action="auth-bootstrap" style="margin-top:4px;justify-content:center">Create admin account</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="auth-overlay">
+    <div class="auth-card">
+      <h2>Sign in to Atlas Plane</h2>
+      <p>Sign in with your Atlas Plane credentials.</p>
+      ${state.auth.error ? `<div class="auth-error">${esc(state.auth.error)}</div>` : ''}
+      <div class="auth-form" style="margin-top:10px">
+        <label>Username
+          <input id="auth-username" type="text" autocomplete="username" maxlength="64">
+        </label>
+        <label>Password
+          <input id="auth-password" type="password" autocomplete="current-password" maxlength="256">
+        </label>
+        <button class="btn btn-primary" data-action="auth-login" style="margin-top:4px;justify-content:center">Sign in</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 /* ── App Root ──────────────────────────────────────────────────────────── */
@@ -3206,7 +3662,8 @@ function App() {
     </main>
     ${BulkActionBar()}
   </div>
-  ${Drawer()}`;
+  ${Drawer()}
+  ${AuthOverlay()}`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -3314,6 +3771,18 @@ document.addEventListener('click', async (e) => {
   const action = el.dataset.action;
 
   switch (action) {
+    case 'auth-login':
+      await submitLogin();
+      break;
+
+    case 'auth-bootstrap':
+      await submitBootstrap();
+      break;
+
+    case 'auth-logout':
+      await logoutSession();
+      break;
+
     case 'switch-page':
       switchPage(el.dataset.page);
       break;
@@ -3331,6 +3800,10 @@ document.addEventListener('click', async (e) => {
     }
 
     case 'template-build':
+      if (!hasRole('admin')) {
+        toast('Admin role is required to build templates.', 'error');
+        break;
+      }
       await runTemplateBuild();
       break;
 
@@ -3339,7 +3812,19 @@ document.addEventListener('click', async (e) => {
       renderTemplatesPage();
       break;
 
+    case 'run-preflight':
+      if (state.preflight.loading) break;
+      el.disabled = true;
+      el.innerHTML = '<span class="spinner"></span> Running…';
+      await runPreflightCheck(true);
+      render();
+      break;
+
     case 'open-drawer':
+      if (!hasRole('operator')) {
+        toast('Operator role is required to provision VMs.', 'error');
+        break;
+      }
       openDrawer();
       break;
 
@@ -3353,6 +3838,7 @@ document.addEventListener('click', async (e) => {
 
     case 'drawer-select-template': {
       state.prov.template = el.dataset.template;
+      invalidatePreflight();
       document.querySelectorAll('.os-card').forEach(c =>
         c.classList.toggle('selected', c.dataset.template === state.prov.template));
       const secOS = document.getElementById('drawer-sec-os');
@@ -3371,12 +3857,13 @@ document.addEventListener('click', async (e) => {
       if (numInst && !numInst.classList.contains('done')) numInst.classList.add('active');
       // Enable launch if ready (node must also be selected)
       const lb = document.getElementById('btn-launch');
-      if (lb && state.prov.profile && state.prov.node) lb.disabled = false;
+      if (lb && state.prov.profile && state.prov.node) lb.disabled = !state.preflight.result?.ready;
       break;
     }
 
     case 'drawer-select-profile': {
       state.prov.profile = el.dataset.profile;
+      invalidatePreflight();
       document.querySelectorAll('.instance-card').forEach(c =>
         c.classList.toggle('selected', c.dataset.profile === state.prov.profile));
       const secInst = document.getElementById('drawer-sec-instance');
@@ -3397,14 +3884,16 @@ document.addEventListener('click', async (e) => {
       renderCustomFields();
       // Update launch button — still disabled until node is selected
       const lb2 = document.getElementById('btn-launch');
-      if (lb2 && !state.prov.node) {
-        lb2.disabled = true;
+      if (lb2) {
+        if (!state.prov.node) lb2.disabled = true;
+        else lb2.disabled = !state.preflight.result?.ready;
       }
       break;
     }
 
     case 'drawer-select-node': {
       state.prov.node = el.dataset.node;
+      invalidatePreflight();
       document.querySelectorAll('.node-card').forEach(c =>
         c.classList.toggle('selected', c.dataset.node === state.prov.node));
       const secNode = document.getElementById('drawer-sec-node');
@@ -3420,10 +3909,17 @@ document.addEventListener('click', async (e) => {
       if (secCfg) secCfg.classList.remove('locked');
       const numCfg = secCfg?.querySelector('.drawer-step-num');
       if (numCfg && !numCfg.classList.contains('done')) numCfg.classList.add('active');
+      // Unlock preflight section and enable check button immediately.
+      const secPf = document.getElementById('drawer-sec-preflight');
+      if (secPf) secPf.classList.remove('locked');
+      const numPf = secPf?.querySelector('.drawer-step-num');
+      if (numPf && !numPf.classList.contains('done')) numPf.classList.add('active');
+      const preflightBtn = secPf?.querySelector('[data-action="run-preflight"]');
+      if (preflightBtn) preflightBtn.disabled = !!state.preflight.loading;
       // Enable launch button if all required selections made
       const lb3 = document.getElementById('btn-launch');
       if (lb3 && state.prov.template && state.prov.profile) {
-        lb3.disabled = false;
+        lb3.disabled = !state.preflight.result?.ready;
         lb3.innerHTML = Icons.rocketLaunch + ' Deploy ' + (state.prov.vmCount > 1 ? state.prov.vmCount + ' VMs' : 'VM');
       }
       break;
@@ -3491,6 +3987,10 @@ document.addEventListener('click', async (e) => {
     case 'bulk-restart':
     case 'bulk-delete': {
       const act = action.replace('bulk-', '');
+      if (!hasRole(act === 'delete' ? 'admin' : 'operator')) {
+        toast(act === 'delete' ? 'Admin role is required to delete VMs.' : 'Operator role is required for power actions.', 'error');
+        break;
+      }
       const vmids = Array.from(state.selectedVMs);
       if (vmids.length === 0) break;
       
@@ -3503,11 +4003,24 @@ document.addEventListener('click', async (e) => {
       }
       
       // Execute action for each VM (skip individual confirmations for bulk operations)
+      let successCount = 0;
+      let failCount = 0;
       for (const vmid of vmids) {
         const vm = state.vms.find(v => v.vmid === vmid);
         if (vm) {
-          await handleVMAction(act, vmid, vm.name, true);
+          const ok = await handleVMAction(act, vmid, vm.name, true, true);
+          if (ok) successCount++;
+          else failCount++;
         }
+      }
+
+      const actionLabel = act === 'delete' ? 'Delete' : act === 'restart' ? 'Restart' : act === 'stop' ? 'Stop' : 'Start';
+      if (failCount === 0) {
+        toast(`${actionLabel} completed for ${successCount} VM${successCount !== 1 ? 's' : ''}.`, 'success');
+      } else if (successCount === 0) {
+        toast(`${actionLabel} failed for all selected VMs.`, 'error');
+      } else {
+        toast(`${actionLabel} completed with issues: ${successCount} succeeded, ${failCount} failed.`, 'error');
       }
       
       state.selectedVMs.clear();
@@ -3523,11 +4036,19 @@ document.addEventListener('click', async (e) => {
       const vmid = +el.dataset.vmid;
       const name = el.dataset.vmname;
       const act = action.replace('vm-', '');
+      if (!hasRole(act === 'delete' ? 'admin' : 'operator')) {
+        toast(act === 'delete' ? 'Admin role is required to delete VMs.' : 'Operator role is required for power actions.', 'error');
+        break;
+      }
       await handleVMAction(act, vmid, name);
       break;
     }
 
     case 'vm-connect': {
+      if (!hasRole('operator')) {
+        toast('Operator role is required to open terminal sessions.', 'error');
+        break;
+      }
       const vmid = +el.dataset.vmid;
       const vm = state.vms.find(v => v.vmid === vmid);
       if (!vm) {
@@ -3539,14 +4060,14 @@ document.addEventListener('click', async (e) => {
     }
 
     case 'vm-download-key': {
+      if (!hasRole('operator')) {
+        toast('Operator role is required to download SSH keys.', 'error');
+        break;
+      }
       const vmid = +el.dataset.vmid;
       const filename = el.dataset.keyname || `vm-${vmid}_key`;
-      const a = document.createElement('a');
-      a.href = `/api/vms/${vmid}/ssh-key`;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const cmd = el.dataset.cmd || '';
+      await downloadSSHKeyAndCopySetup(vmid, filename, cmd);
       break;
     }
 
@@ -3560,11 +4081,24 @@ document.addEventListener('click', async (e) => {
     }
 
     case 'submit-provision':
+      if (!hasRole('operator')) {
+        toast('Operator role is required to provision VMs.', 'error');
+        break;
+      }
+      if (!state.preflight.result?.ready) {
+        const pf = await runPreflightCheck(false);
+        render();
+        if (!pf || !pf.ready) {
+          toast('Preflight checks must pass before provisioning.', 'error');
+          break;
+        }
+      }
       await submitProvision();
       break;
 
     case 'select-template': {
       state.prov.template = el.dataset.template;
+      invalidatePreflight();
       // Highlight selected card
       document.querySelectorAll('.template-card').forEach(c =>
         c.classList.toggle('selected', c.dataset.template === state.prov.template));
@@ -3591,6 +4125,7 @@ document.addEventListener('click', async (e) => {
 
     case 'select-profile': {
       state.prov.profile = el.dataset.profile;
+      invalidatePreflight();
       // Highlight selected card
       document.querySelectorAll('.profile-card').forEach(c =>
         c.classList.toggle('selected', c.dataset.profile === state.prov.profile));
@@ -3628,6 +4163,7 @@ document.addEventListener('click', async (e) => {
     case 'prov-increment':
       if (state.prov.vmCount < 20) {
         state.prov.vmCount++;
+        invalidatePreflight();
         _updateCountUI();
       }
       break;
@@ -3635,6 +4171,7 @@ document.addEventListener('click', async (e) => {
     case 'prov-decrement':
       if (state.prov.vmCount > 1) {
         state.prov.vmCount--;
+        invalidatePreflight();
         _updateCountUI();
       }
       break;
@@ -3653,6 +4190,8 @@ document.addEventListener('click', async (e) => {
       state.jobDone       = false;
       state.jobEndedAt    = null;
       state.jobStartedAt  = null;
+      state.preflight.result = null;
+      state.preflight.error = '';
       renderProvisionWizard();
       break;
 
@@ -3686,6 +4225,11 @@ document.addEventListener('click', async (e) => {
 
 document.addEventListener('change', (e) => {
   if (e.target.dataset.action === 'template-storage') {
+    if (!hasRole('admin')) {
+      toast('Admin role is required to assign template storage.', 'error');
+      e.target.value = e.target.defaultValue || '';
+      return;
+    }
     const node = e.target.dataset.node;
     const storageId = e.target.value;
     if (!node || !storageId) return;
@@ -3694,7 +4238,7 @@ document.addEventListener('change', (e) => {
         toast(`Storage set for ${node}`, 'success');
         return loadTemplateState();
       })
-      .catch(err => toast('Failed to set storage: ' + err.message, 'error'));
+      .catch(err => toast('Unable to set storage for this node. ' + err.message, 'error'));
     return;
   }
 
@@ -3719,9 +4263,9 @@ document.addEventListener('change', (e) => {
     state.animateNextRender = true;
     renderVMGrid();
   }
-  if (e.target.id === 'prov-cores')   { const v = +e.target.value; if (v > 0) state.prov.customCores  = v; }
-  if (e.target.id === 'prov-memory')  { const v = +e.target.value; if (v > 0) state.prov.customMemory = v; }
-  if (e.target.id === 'prov-disk-num'){ const v = +e.target.value; if (v > 0) state.prov.customDisk   = v + 'G'; }
+  if (e.target.id === 'prov-cores')   { const v = +e.target.value; if (v > 0) { state.prov.customCores  = v; invalidatePreflight(); } }
+  if (e.target.id === 'prov-memory')  { const v = +e.target.value; if (v > 0) { state.prov.customMemory = v; invalidatePreflight(); } }
+  if (e.target.id === 'prov-disk-num'){ const v = +e.target.value; if (v > 0) { state.prov.customDisk   = v + 'G'; invalidatePreflight(); } }
 });
 
 document.addEventListener('input', (e) => {
@@ -3741,9 +4285,9 @@ document.addEventListener('input', (e) => {
     renderVMGrid();
   }
   // Custom profile — number inputs
-  if (e.target.id === 'prov-cores')   { const v = +e.target.value; if (v > 0) state.prov.customCores  = v; }
-  if (e.target.id === 'prov-memory')  { const v = +e.target.value; if (v > 0) state.prov.customMemory = v; }
-  if (e.target.id === 'prov-disk-num'){ const v = +e.target.value; if (v > 0) state.prov.customDisk   = v + 'G'; }
+  if (e.target.id === 'prov-cores')   { const v = +e.target.value; if (v > 0) { state.prov.customCores  = v; invalidatePreflight(); } }
+  if (e.target.id === 'prov-memory')  { const v = +e.target.value; if (v > 0) { state.prov.customMemory = v; invalidatePreflight(); } }
+  if (e.target.id === 'prov-disk-num'){ const v = +e.target.value; if (v > 0) { state.prov.customDisk   = v + 'G'; invalidatePreflight(); } }
   // Custom profile — sliders
   if (e.target.classList && e.target.classList.contains('hw-range')) {
     const field = e.target.dataset.field;
@@ -3753,14 +4297,17 @@ document.addEventListener('input', (e) => {
     e.target.style.background = `linear-gradient(to right, var(--accent) ${pct}, var(--bg-3) ${pct})`;
     if (field === 'cores') {
       state.prov.customCores = val;
+      invalidatePreflight();
       const lbl = document.getElementById('hw-val-cores');
       if (lbl) lbl.textContent = val + ' vCPU';
     } else if (field === 'memory') {
       state.prov.customMemory = val;
+      invalidatePreflight();
       const lbl = document.getElementById('hw-val-memory');
       if (lbl) lbl.textContent = val >= 1024 ? (val/1024).toFixed(1).replace(/\.0$/,'') + ' GB' : val + ' MiB';
     } else if (field === 'disk') {
       state.prov.customDisk = val + 'G';
+      invalidatePreflight();
       const lbl = document.getElementById('hw-val-disk');
       if (lbl) lbl.textContent = val + ' GB';
     }
@@ -3768,11 +4315,15 @@ document.addEventListener('input', (e) => {
   // Start VMID
   if (e.target.id === 'prov-start-vmid') {
     const v = +e.target.value;
-    if (v >= 100) state.prov.vmStartId = v;
+    if (v >= 100) {
+      state.prov.vmStartId = v;
+      invalidatePreflight();
+    }
   }
   // VM Name
   if (e.target.id === 'prov-vm-name') {
     state.prov.vmName = sanitizeVMName(e.target.value, false);
+    invalidatePreflight();
     e.target.value = state.prov.vmName;
     // re-render just the preview hint without full redraw
     const previewVMName = sanitizeVMName(state.prov.vmName, true);
@@ -3786,6 +4337,19 @@ document.addEventListener('input', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && state.auth.enabled && !state.auth.authenticated) {
+    const active = document.activeElement;
+    if (active && (active.id === 'auth-username' || active.id === 'auth-password')) {
+      e.preventDefault();
+      submitLogin();
+      return;
+    }
+    if (active && (active.id === 'auth-bootstrap-password' || active.id === 'auth-bootstrap-confirm')) {
+      e.preventDefault();
+      submitBootstrap();
+      return;
+    }
+  }
   if (e.key === 'Escape' && state.drawerOpen) closeDrawer();
 });
 
@@ -3899,7 +4463,7 @@ async function openSSHWindow(vm) {
   try {
     connectInfo = await api('GET', `/vms/${vm.vmid}/ssh-connect`);
   } catch (err) {
-    toast(`Connect failed: ${err.message}`, 'error');
+    toast(`Unable to connect to VM ${vm.vmid}. ${err.message}`, 'error');
     return;
   }
 
@@ -4089,11 +4653,11 @@ async function openSSHWindow(vm) {
   });
 }
 
-async function handleVMAction(action, vmid, name, skipConfirm = false) {
+async function handleVMAction(action, vmid, name, skipConfirm = false, suppressToast = false) {
   if (action === 'delete' && !skipConfirm) {
     const yes = await showConfirm('Delete VM',
       `Permanently destroy <strong>${esc(name || '')}</strong> (VMID ${vmid})?<br>This action cannot be undone.`);
-    if (!yes) return;
+    if (!yes) return false;
   }
 
   state.loadingActions[vmid] = action;
@@ -4106,10 +4670,16 @@ async function handleVMAction(action, vmid, name, skipConfirm = false) {
     else if (action === 'delete') await api('DELETE', `/vms/${vmid}`);
 
     const pastTense = action === 'delete' ? 'deleted' : action === 'stop' ? 'stopped' : action === 'start' ? 'started' : 'restarting';
-    toast(`VM ${vmid} ${pastTense} successfully`, 'success');
+    if (!suppressToast) {
+      toast(`VM ${vmid} ${pastTense} successfully.`, 'success');
+    }
     setTimeout(loadVMs, 1200);
+    return true;
   } catch (err) {
-    toast(`Failed to ${action} VM ${vmid}: ${err.message}`, 'error');
+    if (!suppressToast) {
+      toast(`Unable to ${action} VM ${vmid}. ${err.message}`, 'error');
+    }
+    return false;
   } finally {
     delete state.loadingActions[vmid];
     renderVMGrid();
@@ -4191,7 +4761,7 @@ async function submitProvision() {
     connectSSE(resp.jobId);
     startJobTimer();
   } catch (err) {
-    toast('Provision failed: ' + err.message, 'error');
+    toast('Provision request could not be started. ' + err.message, 'error');
     if (btn) {
       btn.disabled = false;
       const count = state.prov.vmCount;
@@ -4216,7 +4786,8 @@ function connectSSE(jobId) {
       stopJobTimer();
       renderProvisionWizard();   // re-render page with 'Provision Another' button
       renderProvisionProgress(); // update pipeline cards to final state
-      toast(ev.message, ev.message.includes('0 failed') ? 'success' : 'error');
+      const isSuccess = ev.message.includes('0 failed');
+      toast(isSuccess ? 'Provisioning complete. All VMs are ready.' : `Provisioning finished with issues. ${ev.message}`, isSuccess ? 'success' : 'error');
       loadVMs();
       return;
     }
@@ -4280,7 +4851,7 @@ async function loadTemplateState(opts = {}) {
       module.vmidInput = '';
     }
   } catch (err) {
-    toast('Failed to load template state: ' + err.message, 'error');
+    toast('Unable to load template state. ' + err.message, 'error');
   } finally {
     module.loading = false;
     if (state.page === 'templates' && (forceRender || !isTemplateInteractionActive())) {
@@ -4317,7 +4888,7 @@ async function runTemplateBuild() {
     toast(`Template build started on ${node}`, 'success');
     await loadTemplateState({ forceRender: true });
   } catch (err) {
-    toast('Build failed to start: ' + err.message, 'error');
+    toast('Template build could not be started. ' + err.message, 'error');
   } finally {
     module.busy = false;
     renderTemplatesPage();
@@ -4392,6 +4963,157 @@ function nodesListHTML() {
   }).join('');
 }
 
+async function loadAuthState() {
+  state.auth.loading = true;
+  state.auth.error = '';
+  render();
+
+  try {
+    const r = await fetch('/api/auth/me', { credentials: 'include' });
+    const data = await r.json();
+    state.auth.enabled = !!data.enabled;
+    state.auth.bootstrapRequired = !!data.bootstrapRequired;
+    state.auth.authenticated = !!data.authenticated || !state.auth.enabled;
+    state.auth.username = data.username || (state.auth.bootstrapRequired ? 'admin' : '');
+    state.auth.role = data.role || '';
+  } catch (_err) {
+    state.auth.enabled = false;
+    state.auth.authenticated = true;
+    state.auth.bootstrapRequired = false;
+    state.auth.username = '';
+    state.auth.role = '';
+  } finally {
+    state.auth.loading = false;
+    render();
+  }
+}
+
+async function submitLogin() {
+  if (state.auth.bootstrapRequired) {
+    state.auth.error = 'Complete first-time password setup before signing in.';
+    render();
+    return;
+  }
+
+  const usernameInput = document.getElementById('auth-username');
+  const passwordInput = document.getElementById('auth-password');
+  const username = String(usernameInput?.value || '').trim();
+  const password = String(passwordInput?.value || '');
+
+  if (!username || !password) {
+    state.auth.error = 'Enter both username and password.';
+    render();
+    return;
+  }
+
+  state.auth.error = '';
+  render();
+
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      throw new Error(data.error || 'Login failed.');
+    }
+
+    state.auth.enabled = true;
+    state.auth.authenticated = true;
+    state.auth.bootstrapRequired = false;
+    state.auth.username = data.username || username;
+    state.auth.role = data.role || '';
+    state.auth.error = '';
+
+    await loadConfig();
+    await loadVMs();
+    render();
+    toast('Signed in successfully.', 'success');
+  } catch (err) {
+    state.auth.authenticated = false;
+    state.auth.error = err.message || 'Sign in failed.';
+    render();
+  }
+}
+
+async function submitBootstrap() {
+  const passwordInput = document.getElementById('auth-bootstrap-password');
+  const confirmInput = document.getElementById('auth-bootstrap-confirm');
+  const password = String(passwordInput?.value || '');
+  const confirm = String(confirmInput?.value || '');
+
+  if (!password || !confirm) {
+    state.auth.error = 'Enter and confirm your new admin password.';
+    render();
+    return;
+  }
+  if (password !== confirm) {
+    state.auth.error = 'Passwords do not match.';
+    render();
+    return;
+  }
+  if (password.length < 12) {
+    state.auth.error = 'Password must be at least 12 characters.';
+    render();
+    return;
+  }
+
+  state.auth.error = '';
+  render();
+
+  try {
+    const r = await fetch('/api/auth/bootstrap', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      throw new Error(data.error || 'Bootstrap failed.');
+    }
+
+    state.auth.enabled = true;
+    state.auth.bootstrapRequired = false;
+    state.auth.authenticated = true;
+    state.auth.username = data.username || 'admin';
+    state.auth.role = data.role || 'admin';
+    state.auth.error = '';
+
+    await loadConfig();
+    await loadVMs();
+    render();
+    toast('Initial admin password set successfully.', 'success');
+  } catch (err) {
+    state.auth.error = err.message || 'Bootstrap failed.';
+    render();
+  }
+}
+
+async function logoutSession() {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  } catch (_err) {}
+
+  state.auth.authenticated = false;
+  state.auth.bootstrapRequired = false;
+  state.auth.username = '';
+  state.auth.role = '';
+  state.auth.error = '';
+
+  state.vms = [];
+  state.selectedVMs.clear();
+  if (state.activeEventSource) {
+    state.activeEventSource.close();
+    state.activeEventSource = null;
+  }
+  stopJobTimer();
+  render();
+}
+
 async function loadConfig() {
   try {
     const cfg = await api('GET', '/config');
@@ -4414,17 +5136,26 @@ function setVal(id, val) {
    Initialization
    ═══════════════════════════════════════════════════════════════════════════ */
 
-render();
-loadConfig();
-loadVMs();
+async function bootstrap() {
+  render();
+  await loadAuthState();
+  if (!state.auth.enabled || state.auth.authenticated) {
+    await loadConfig();
+    await loadVMs();
+  }
+}
+
+bootstrap();
 
 // Auto-refresh VMs every 15s when on VMs page
 setInterval(() => {
+  if (state.auth.enabled && !state.auth.authenticated) return;
   if (state.page === 'vms' && !document.hidden) loadVMs();
 }, 15000);
 
 // Auto-refresh template state every 3s when on Templates page
 setInterval(() => {
+  if (state.auth.enabled && !state.auth.authenticated) return;
   if (state.page === 'templates' && !document.hidden) loadTemplateState({ forceRender: false });
 }, 3000);
 

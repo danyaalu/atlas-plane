@@ -139,6 +139,33 @@ You can also point to a custom env file by setting `ATLAS_ENV_FILE`.
 | `PVE_SSH_USER` | `root` | SSH user on the Proxmox host |
 | `PVE_SSH_KEY` | `~/.ssh/id_rsa` | SSH private key for the Proxmox host |
 | `PVE_SSH_PORT` | `22` | SSH port on the Proxmox host |
+| `ATLAS_AUTH_ENABLED` | `false` | Enable web/API authentication and RBAC when running `serve` mode |
+| `ATLAS_AUTH_USERS` | *(optional)* | Semicolon-separated `username\|role\|password` entries (roles: `viewer`, `operator`, `admin`) |
+| `ATLAS_AUTH_STORE_PATH` | `./.atlas/auth/users.json` | Secure on-disk auth user store used for first-time bootstrap and persisted credentials |
+| `ATLAS_AUTH_SESSION_TTL_MINUTES` | `480` | Session lifetime in minutes (sliding expiration) |
+| `ATLAS_AUTH_LOGIN_MAX_ATTEMPTS` | `5` | Maximum failed login attempts per client IP within the configured window |
+| `ATLAS_AUTH_LOGIN_WINDOW_MINUTES` | `15` | Login rate-limit window in minutes |
+
+### Web Authentication Configuration
+
+When `ATLAS_AUTH_ENABLED=true`, you can either:
+
+1. Preconfigure users with `ATLAS_AUTH_USERS`, or
+2. Leave `ATLAS_AUTH_USERS` empty and complete first-time bootstrap in the UI (set initial `admin` password; bcrypt hash is stored in `ATLAS_AUTH_STORE_PATH`).
+
+Preconfigured user example:
+
+```bash
+ATLAS_AUTH_USERS='viewer|viewer|viewer-pass;ops|operator|ops-pass;admin|admin|admin-pass'
+```
+
+For production, prefer bcrypt hashes in `ATLAS_AUTH_USERS`:
+
+```bash
+ATLAS_AUTH_USERS='admin|admin|$2b$12$...'
+# or explicitly:
+ATLAS_AUTH_USERS='admin|admin|bcrypt:$2b$12$...'
+```
 
 > **VM naming** is automatic — each VM gets a random Docker-style name like `swift-nexus-a3f1b2`. VMIDs are auto-allocated starting from `VM_START_ID` by scanning the cluster for free IDs.
 
@@ -251,6 +278,7 @@ runcmd:
 - API routes:
   - `GET /api/vms/{id}/ssh-key` (recommended, stable key lookup by VMID)
   - `GET /api/vms/{id}/ssh-connect` (returns host/user metadata for browser SSH terminal)
+  - `POST /api/preflight` (validates provisioning readiness: API, node, template, snippet path/storage, key material, VMID availability)
   - `GET /api/keys/{filename}` (legacy filename route, still supported)
 
 ## Browser Terminal (WinBox + xterm.js)
