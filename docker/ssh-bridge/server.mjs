@@ -33,6 +33,7 @@ io.on('connection', (socket) => {
   let sshClient = null;
   let sshStream = null;
   let closed = false;
+  const backendAuthHeaders = extractBackendAuthHeaders(socket);
 
   const cleanup = () => {
     if (closed) return;
@@ -73,7 +74,7 @@ io.on('connection', (socket) => {
     const rows = sanitizeDimension(payload.rows, 32);
 
     try {
-      const connectInfo = await fetchConnectInfo(vmId);
+      const connectInfo = await fetchConnectInfo(vmId, backendAuthHeaders);
       const privateKey = await loadPrivateKeyForVM(connectInfo.vmid);
 
       sshClient = new SSHClient();
@@ -167,8 +168,8 @@ function sanitizeDimension(value, fallback) {
   return Math.min(Math.max(n, 1), 1000);
 }
 
-async function fetchConnectInfo(vmId) {
-  const response = await fetch(`${BACKEND_URL}/api/vms/${vmId}/ssh-connect`);
+async function fetchConnectInfo(vmId, headers = {}) {
+  const response = await fetch(`${BACKEND_URL}/api/vms/${vmId}/ssh-connect`, { headers });
   let payload = {};
   try {
     payload = await response.json();
@@ -189,6 +190,15 @@ async function fetchConnectInfo(vmId) {
     host: String(payload.host),
     user: String(payload.user || DEFAULT_SSH_USER),
   };
+}
+
+function extractBackendAuthHeaders(socket) {
+  const headers = {};
+  const rawCookie = socket?.handshake?.headers?.cookie;
+  if (typeof rawCookie === 'string' && rawCookie.trim() !== '') {
+    headers.cookie = rawCookie;
+  }
+  return headers;
 }
 
 function decodeMasterKey(value) {
