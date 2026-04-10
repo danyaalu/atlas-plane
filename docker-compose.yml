@@ -11,6 +11,7 @@ services:
     environment:
       KEY_VAULT_DIR: /keys
       ATLAS_SSH_KEY_DIR: /keys
+      ATLAS_AUTH_STORE_PATH: /auth/users.json
       ATLAS_WEB_PORT: 8080
       CA_KEY_PATH: /app/ca_ed25519
       PVE_SSH_KEY: /app/pve_ssh_key
@@ -20,6 +21,7 @@ services:
       - pve_ssh_key
     volumes:
       - ssh_key_data:/keys
+      - auth_data:/auth
       - ./atlas-template-sot.json:/app/atlas-template-sot.json
     ports:
       - "8080:8080"
@@ -51,6 +53,8 @@ services:
 volumes:
   ssh_key_data:
     name: ssh_key_data
+  auth_data:
+    name: auth_data
 
 secrets:
   ca_ed25519:

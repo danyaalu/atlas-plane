@@ -16,9 +16,9 @@ WORKDIR /app
 
 RUN apk add --no-cache su-exec \
   && addgroup -S app && adduser -S app -G app \
-  && mkdir -p /keys \
-  && chown -R app:app /app /keys \
-  && chmod 700 /keys
+  && mkdir -p /keys /auth \
+  && chown -R app:app /app /keys /auth \
+  && chmod 700 /keys /auth
 
 COPY --from=build /out/atlas-plane /app/atlas-plane
 COPY docker/backend/entrypoint.sh /app/entrypoint.sh

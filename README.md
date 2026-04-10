@@ -141,7 +141,7 @@ You can also point to a custom env file by setting `ATLAS_ENV_FILE`.
 | `PVE_SSH_PORT` | `22` | SSH port on the Proxmox host |
 | `ATLAS_AUTH_ENABLED` | `false` | Enable web/API authentication and RBAC when running `serve` mode |
 | `ATLAS_AUTH_USERS` | *(optional)* | Semicolon-separated `username\|role\|password` entries (roles: `viewer`, `operator`, `admin`) |
-| `ATLAS_AUTH_STORE_PATH` | `./.atlas/auth/users.json` | Secure on-disk auth user store used for first-time bootstrap and persisted credentials |
+| `ATLAS_AUTH_STORE_PATH` | `./.atlas/auth/users.json` | Secure on-disk auth user store used for first-time bootstrap and persisted credentials (Docker compose uses `/auth/users.json` on a named volume) |
 | `ATLAS_AUTH_SESSION_TTL_MINUTES` | `480` | Session lifetime in minutes (sliding expiration) |
 | `ATLAS_AUTH_LOGIN_MAX_ATTEMPTS` | `5` | Maximum failed login attempts per client IP within the configured window |
 | `ATLAS_AUTH_LOGIN_WINDOW_MINUTES` | `15` | Login rate-limit window in minutes |

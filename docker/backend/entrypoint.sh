@@ -5,6 +5,10 @@ mkdir -p /keys
 chown app:app /keys
 chmod 700 /keys
 
+mkdir -p /auth
+chown app:app /auth
+chmod 700 /auth
+
 if [ -f /keys/index.json ]; then
   chown app:app /keys/index.json
   chmod 600 /keys/index.json

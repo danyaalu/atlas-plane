@@ -3673,6 +3673,8 @@ function App() {
 function render() {
   document.getElementById('app').innerHTML = App();
   attachPostRenderHooks();
+  updateSelectAllControl();
+  updateBulkActionBar();
 }
 
 function renderVMGrid() {
@@ -3737,6 +3739,8 @@ function renderVMGrid() {
       <span class="stat-item"><span class="stat-dot running"></span>${running} Running</span>
       <span class="stat-item"><span class="stat-dot stopped"></span>${stopped} Stopped</span>`;
   }
+
+  updateSelectAllControl();
 }
 
 function renderProvisionProgress() {
@@ -3754,6 +3758,31 @@ function updateBulkActionBar() {
   if (countEl) {
     countEl.innerHTML = `<strong>${count}</strong> VM${count !== 1 ? 's' : ''} selected`;
   }
+}
+
+function updateSelectAllControl() {
+  const wrapper = document.querySelector('.select-all-wrapper');
+  if (!wrapper) return;
+
+  const checkbox = wrapper.querySelector('.vm-checkbox');
+  const label = wrapper.querySelector('.select-all-label');
+  const visibleVmIDs = getVisibleSelectableVMIDs();
+  const selectableCount = visibleVmIDs.length;
+  const selectedCount = visibleVmIDs.filter(vmid => state.selectedVMs.has(vmid)).length;
+  const allSelected = selectableCount > 0 && selectedCount === selectableCount;
+  const someSelected = selectedCount > 0 && selectedCount < selectableCount;
+  const checkboxClass = allSelected ? 'checked' : someSelected ? 'partial' : '';
+
+  if (checkbox) checkbox.className = `vm-checkbox ${checkboxClass}`.trim();
+  if (label) {
+    label.textContent = `${allSelected ? 'Deselect All' : 'Select All'}${selectableCount > 0 ? ` (${selectableCount})` : ''}`;
+  }
+}
+
+function getVisibleSelectableVMIDs() {
+  return Array.from(document.querySelectorAll('#vm-grid [data-action="toggle-vm"][data-vmid]'))
+    .map(el => Number(el.dataset.vmid))
+    .filter(vmid => Number.isInteger(vmid) && vmid > 0);
 }
 
 function attachPostRenderHooks() {
@@ -3966,15 +3995,15 @@ document.addEventListener('click', async (e) => {
       break;
 
     case 'select-all': {
-      const filteredVMs = getFilteredVMs().filter(vm => vm.template !== 1);
-      const allSelected = filteredVMs.every(vm => state.selectedVMs.has(vm.vmid));
+      const visibleVmIDs = getVisibleSelectableVMIDs();
+      const allSelected = visibleVmIDs.length > 0 && visibleVmIDs.every(vmid => state.selectedVMs.has(vmid));
       
       if (allSelected) {
-        // Deselect all filtered VMs
-        filteredVMs.forEach(vm => state.selectedVMs.delete(vm.vmid));
+        // Deselect all visible VMs
+        visibleVmIDs.forEach(vmid => state.selectedVMs.delete(vmid));
       } else {
-        // Select all filtered VMs
-        filteredVMs.forEach(vm => state.selectedVMs.add(vm.vmid));
+        // Select all visible VMs
+        visibleVmIDs.forEach(vmid => state.selectedVMs.add(vmid));
       }
       
       renderVMGrid();

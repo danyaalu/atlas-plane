@@ -31,7 +31,10 @@ It also mounts your Proxmox SSH private key from `${HOME}/.ssh/id_rsa` as a secr
 
 Services:
 - `backend` mounts `ssh_key_data` at `/keys` (read/write)
+- `backend` mounts `auth_data` at `/auth` (read/write) for persisted auth bootstrap/users
 - `ssh-bridge` mounts `ssh_key_data` at `/keys` (read-only)
+
+`docker-compose.yml` sets `ATLAS_AUTH_STORE_PATH=/auth/users.json`, so first-time password bootstrap persists across container recreation.
 
 Backend API/UI is exposed on `http://localhost:8080`.
 

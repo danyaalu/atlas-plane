@@ -219,3 +219,43 @@ func TestWithRoleEnforcesPermissions(t *testing.T) {
 		t.Fatalf("expected 204 for admin role, got %d", adminRec.Code)
 	}
 }
+
+func TestValidateStorePathSecurityAcceptsSecureModes(t *testing.T) {
+	base := t.TempDir()
+	dir := filepath.Join(base, "auth")
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		t.Fatalf("create auth dir: %v", err)
+	}
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatalf("chmod auth dir: %v", err)
+	}
+	if err := validateStorePathSecurity(dir, true); err != nil {
+		t.Fatalf("expected secure directory mode to pass, got: %v", err)
+	}
+
+	file := filepath.Join(dir, "users.json")
+	if err := os.WriteFile(file, []byte(`{"version":1,"users":[]}`), 0600); err != nil {
+		t.Fatalf("write auth file: %v", err)
+	}
+	if err := os.Chmod(file, 0600); err != nil {
+		t.Fatalf("chmod auth file: %v", err)
+	}
+	if err := validateStorePathSecurity(file, false); err != nil {
+		t.Fatalf("expected secure file mode to pass, got: %v", err)
+	}
+}
+
+func TestValidateStorePathSecurityRejectsPermissiveModes(t *testing.T) {
+	base := t.TempDir()
+	file := filepath.Join(base, "users.json")
+	if err := os.WriteFile(file, []byte(`{"version":1,"users":[]}`), 0644); err != nil {
+		t.Fatalf("write auth file: %v", err)
+	}
+	if err := os.Chmod(file, 0644); err != nil {
+		t.Fatalf("chmod auth file: %v", err)
+	}
+
+	if err := validateStorePathSecurity(file, false); err == nil {
+		t.Fatalf("expected permissive auth store file mode to fail validation")
+	}
+}

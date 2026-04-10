@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -580,7 +582,7 @@ func saveAuthUsersToStore(path string, users map[string]authUser, now time.Time)
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("create auth store directory: %w", err)
 	}
-	if err := os.Chmod(dir, 0700); err != nil {
+	if err := secureStorePathPermissions(dir, 0700, true); err != nil {
 		return fmt.Errorf("secure auth store directory permissions: %w", err)
 	}
 
@@ -617,10 +619,45 @@ func saveAuthUsersToStore(path string, users map[string]authUser, now time.Time)
 	if err := os.Rename(tmp, path); err != nil {
 		return fmt.Errorf("replace auth store: %w", err)
 	}
-	if err := os.Chmod(path, 0600); err != nil {
+	if err := secureStorePathPermissions(path, 0600, false); err != nil {
 		return fmt.Errorf("secure auth store file permissions: %w", err)
 	}
 	return nil
+}
+
+func secureStorePathPermissions(path string, desired os.FileMode, expectDir bool) error {
+	if err := os.Chmod(path, desired); err != nil {
+		if !isNonFatalPermissionTightenError(err) {
+			return err
+		}
+		return validateStorePathSecurity(path, expectDir)
+	}
+	return nil
+}
+
+func validateStorePathSecurity(path string, expectDir bool) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("stat path after chmod failure: %w", err)
+	}
+	if expectDir && !info.IsDir() {
+		return fmt.Errorf("expected directory at %s", path)
+	}
+	if !expectDir && info.IsDir() {
+		return fmt.Errorf("expected file at %s", path)
+	}
+	perms := info.Mode().Perm()
+	if perms&0077 != 0 {
+		return fmt.Errorf("path %s is too permissive (%#o)", path, perms)
+	}
+	return nil
+}
+
+func isNonFatalPermissionTightenError(err error) bool {
+	return errors.Is(err, os.ErrPermission) ||
+		errors.Is(err, syscall.EPERM) ||
+		errors.Is(err, syscall.ENOTSUP) ||
+		errors.Is(err, syscall.EOPNOTSUPP)
 }
 
 func requestClientIP(r *http.Request) string {
