@@ -84,7 +84,7 @@ func newSSHKeyVault(dir string) (*SSHKeyVault, error) {
 func loadMasterKeyFromEnv() ([]byte, error) {
 	v := strings.TrimSpace(os.Getenv("MASTER_ENCRYPTION_KEY"))
 	if v == "" {
-		return nil, fmt.Errorf("MASTER_ENCRYPTION_KEY is required")
+		return nil, fmt.Errorf("MASTER_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32\nSee README.md 'Quick Start' section for setup instructions")
 	}
 
 	if len(v) == 64 {

@@ -131,7 +131,7 @@ You can also point to a custom env file by setting `ATLAS_ENV_FILE`.
 | `VM_DISK_SIZE` | `5G` | Target disk size after clone |
 | `CA_KEY_PATH` | `./ca_ed25519` | Path to the CA private key file |
 | `ATLAS_SSH_KEY_DIR` | `./.atlas/keys` | Encrypted key vault directory (private keys + vault metadata) |
-| `MASTER_ENCRYPTION_KEY` | *(required for encrypted key vault)* | 32-byte AES key (64-char hex, base64, or raw 32-byte string) |
+| `MASTER_ENCRYPTION_KEY` | *(required)* | **32-byte AES encryption key for storing SSH private keys.** Must be exactly 32 bytes; accepted formats: 64-char hex, base64, or raw string. Generate with: `openssl rand -hex 32` |
 | `ATLAS_SSH_BRIDGE_URL` | `http://localhost:3002` | Browser URL for the Socket.io SSH bridge used by in-app terminal |
 | `SNIPPET_STORAGE` | `local` | Proxmox storage with snippets enabled |
 | `SNIPPET_DIR` | `/var/lib/vz/snippets` | Filesystem path on PVE node for snippets |
@@ -169,21 +169,58 @@ ATLAS_AUTH_USERS='admin|admin|bcrypt:$2b$12$...'
 
 > **VM naming** is automatic — each VM gets a random Docker-style name like `swift-nexus-a3f1b2`. VMIDs are auto-allocated starting from `VM_START_ID` by scanning the cluster for free IDs.
 
-## Usage
+## Quick Start
+
+### 1. Generate Encryption Key
+
+**For development/testing**, generate a random 32-byte key (choose one format):
 
 ```bash
-# Install dependencies
-go mod tidy
+# Hex format (64 characters, recommended for readability)
+MASTER_ENCRYPTION_KEY=$(openssl rand -hex 32)
+echo "MASTER_ENCRYPTION_KEY=$MASTER_ENCRYPTION_KEY"
 
-# Create .env in the project root (example)
+# Or use base64 format (43 characters)
+MASTER_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '\n')
+echo "MASTER_ENCRYPTION_KEY=$MASTER_ENCRYPTION_KEY"
+```
+
+> **Note:** This key encrypts provisioned SSH private keys stored locally in `.atlas/keys`. Keep it safe — if lost, you cannot decrypt stored keys. In Docker deployments, store it in a secrets manager (e.g., Docker Secrets, Kubernetes Secrets).
+
+### 2. Create `.env` Configuration
+
+```bash
 cat > .env <<'EOF'
 PROXMOX_API_TOKEN=root@pam!atlas=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 PROXMOX_URL=https://192.168.1.100:8006
 PROXMOX_NODE=pve
 TEMPLATE_VMID=9000
 VM_COUNT=1
+MASTER_ENCRYPTION_KEY=<paste your generated key here>
 EOF
+```
 
+### 3. Run
+
+```bash
+# Install dependencies
+go mod tidy
+
+# Provision a single VM (default VM_COUNT=1)
+go run . serve
+
+# Provision 3 VMs in parallel
+VM_COUNT=3 go run . serve
+
+# Use a custom env file
+ATLAS_ENV_FILE=.env.prod go run . serve
+```
+
+## Usage
+
+### Provisioning VMs
+
+```bash
 # Provision a single VM (default VM_COUNT=1)
 go run main.go
 
@@ -192,6 +229,13 @@ VM_COUNT=3 go run main.go
 
 # Use a custom env file
 ATLAS_ENV_FILE=.env.prod go run main.go
+```
+
+### Running the Web UI
+
+```bash
+# Start the web server (serves on port 8080 by default)
+ATLAS_WEB_PORT=8080 go run . serve
 ```
 
 ### Example Output (3 VMs)
