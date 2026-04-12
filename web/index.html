@@ -2113,6 +2113,43 @@ function esc(s) {
   return d.innerHTML;
 }
 
+async function copyToClipboard(text) {
+  const value = String(text || '');
+  if (!value) return false;
+
+  if (window.isSecureContext && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch (_err) {
+      // Fall through to execCommand fallback.
+    }
+  }
+
+  try {
+    const el = document.createElement('textarea');
+    el.value = value;
+    el.setAttribute('readonly', '');
+    el.style.position = 'fixed';
+    el.style.opacity = '0';
+    el.style.pointerEvents = 'none';
+    el.style.left = '-9999px';
+    document.body.appendChild(el);
+    el.focus();
+    el.select();
+    const ok = document.execCommand('copy');
+    el.remove();
+    return !!ok;
+  } catch (_err) {
+    return false;
+  }
+}
+
+function isLoopbackHost(hostname) {
+  const host = String(hostname || '').trim().toLowerCase();
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+}
+
 function sanitizeVMName(value, trimEdgeDashes = true) {
   const sanitized = (value || '')
     .trim()
@@ -2788,7 +2825,8 @@ async function downloadSSHKeyAndCopySetup(vmid, filename, presetCmd = '') {
   }
 
   try {
-    await navigator.clipboard.writeText(setupCmd);
+    const copied = await copyToClipboard(setupCmd);
+    if (!copied) throw new Error('clipboard write failed');
     toast('SSH key downloaded and setup command copied', 'success');
   } catch (_err) {
     toast('SSH key downloaded. Copy command from the deployment card.', 'info');
@@ -4103,8 +4141,12 @@ document.addEventListener('click', async (e) => {
     case 'copy-ssh': {
       const cmd = el.dataset.cmd;
       if (cmd) {
-        await navigator.clipboard.writeText(cmd);
-        toast('Setup command copied', 'success');
+        const copied = await copyToClipboard(cmd);
+        if (copied) {
+          toast('Setup command copied', 'success');
+        } else {
+          toast('Unable to copy automatically in this browser context. Select and copy the command manually.', 'info');
+        }
       }
       break;
     }
@@ -4402,7 +4444,22 @@ function switchPage(page) {
 
 function sshBridgeBaseUrl() {
   const configured = String(state.config.sshBridgeUrl || '').trim();
-  if (configured) return configured.replace(/\/+$/, '');
+  if (configured) {
+    try {
+      const configuredUrl = new URL(configured, window.location.href);
+      const pageHost = String(window.location.hostname || '').trim().toLowerCase();
+      const configuredHost = String(configuredUrl.hostname || '').trim().toLowerCase();
+
+      // If the UI is opened via IP/domain but bridge is still localhost, align hosts.
+      if (pageHost && !isLoopbackHost(pageHost) && isLoopbackHost(configuredHost)) {
+        configuredUrl.hostname = window.location.hostname;
+      }
+
+      return configuredUrl.toString().replace(/\/+$/, '');
+    } catch (_err) {
+      return configured.replace(/\/+$/, '');
+    }
+  }
   return `${window.location.protocol}//${window.location.hostname}:3002`;
 }
 
@@ -4523,6 +4580,7 @@ async function openSSHWindow(vm) {
   const socket = io(bridgeUrl, {
     transports: ['websocket'],
     reconnection: false,
+    withCredentials: true,
   });
 
   const session = { winbox: null, term, fitAddon, socket, host, resizeObserver: null, tearingDown: false, windowResizeHandler: null };
@@ -4661,7 +4719,7 @@ async function openSSHWindow(vm) {
     const key = String(event.key || '').toLowerCase();
     if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && key === 'c') {
       const selected = term.getSelection();
-      if (selected) navigator.clipboard.writeText(selected).catch(() => {});
+      if (selected) copyToClipboard(selected).catch(() => {});
       return false;
     }
     if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && key === 'v') {
